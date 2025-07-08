@@ -105,16 +105,16 @@ const loadDesign = () => {
     <div className='w-full h-screen' >
       
       <EmailEditor
-      display='email'
-        editorId='editor-container'
-        ref={emailEditorRef}
-        minHeight="92%"
+       minHeight={900}
         options={{
-          
-            appearance: {
-              theme: "modern_dark"
-            }
-          }}
+          displayMode: "email",
+          features: {
+            stockImages: true
+          },
+          id: "editor-container"
+        }}
+        projectId={9788}
+        ref={emailEditorRef}
       />
       
     </div>
