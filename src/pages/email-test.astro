@@ -1,0 +1,467 @@
+---
+import Layout from "../layout/Layout.astro";
+---
+
+<Layout title="Prueba Envío Correo">
+
+<!-- BEGIN: MainContent -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" data-purpose="main-content-layout">
+  <!-- Title and Subtitle Block -->
+  <div class="mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
+          Prueba Envío Correo
+          <span class="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">Gateway-Pruebas</span>
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">Complete los datos de entrega y configure dinámicamente las variables de la plantilla.</p>
+      </div>
+      <!-- Quick actions / Preset loader -->
+      <div class="flex items-center space-x-2">
+        <button class="inline-flex items-center px-3 py-1.5 border border-slate-300 shadow-xs text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 transition-colors" id="btn-reset-demo" type="button">
+          <svg class="w-3.5 h-3.5 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          Restaurar Valores Iniciales
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layout Grid: Form Left (7 cols), Payload Inspector Right (5 cols) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- LEFT COLUMN: Primary Form & Dynamic Builder -->
+    <section class="lg:col-span-7 space-y-6" data-purpose="email-test-form-container">
+      <form class="space-y-6" id="email-test-form">
+
+        <!-- Card 1: Informacion de Entrega & Identificadores -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              <h2 class="text-sm font-semibold text-slate-800 tracking-wide uppercase">Parámetros de Entrega</h2>
+            </div>
+            <span class="text-xs text-slate-400">Todos los campos requeridos (*)</span>
+          </div>
+          <div class="p-6 space-y-5">
+            <!-- Destinatario -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="destinatario">
+                Destinatario <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative rounded-lg shadow-2xs">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </div>
+                <input class="block w-full pl-9 pr-3 py-2.5 sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow text-slate-900 font-medium" id="destinatario" name="destinatario" placeholder="ejemplo@correo.com" required type="email" value="victorarango.dev@gmail.com" />
+              </div>
+            </div>
+            <!-- Asunto -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="asunto">
+                Asunto <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative rounded-lg shadow-2xs">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                </div>
+                <input class="block w-full pl-9 pr-3 py-2.5 sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow text-slate-900" id="asunto" name="asunto" placeholder="Asunto del correo electrónico" required type="text" value="Correo de prueba" />
+              </div>
+            </div>
+            <!-- Grid: Id Plantilla, Id Ciclo, Id Transmisión -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="idPlantilla">
+                  Id Plantilla <span class="text-rose-500">*</span>
+                </label>
+                <input class="block w-full px-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50 focus:bg-white text-slate-800" id="idPlantilla" name="idPlantilla" placeholder="846" required type="text" value="846" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="idCiclo">
+                  Id Ciclo
+                </label>
+                <input class="block w-full px-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50 focus:bg-white text-slate-800" id="idCiclo" name="idCiclo" placeholder="1234" type="text" value="1234" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="idTransmision">
+                  Id Transmisión <span class="text-rose-500">*</span>
+                </label>
+                <input class="block w-full px-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50 focus:bg-white text-slate-800 uppercase" id="idTransmision" name="idTransmision" placeholder="TEST001" required type="text" value="TEST001" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Dynamic Variables Builder -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden" data-purpose="variables-builder-card">
+          <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5">
+              <div class="p-1 rounded bg-indigo-50 text-indigo-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              </div>
+              <div>
+                <h2 class="text-sm font-semibold text-slate-800">Variables de Plantilla</h2>
+                <p class="text-xs text-slate-500">Estructura de reemplazo clave / valor en la plantilla</p>
+              </div>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200" id="row-count-badge">3 variables configuradas</span>
+          </div>
+          <div class="p-5 sm:p-6 space-y-4">
+            <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-lg flex items-start gap-2.5 text-xs text-blue-900">
+              <svg class="w-4 h-4 text-blue-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              <div class="leading-relaxed">
+                Las variables se insertan automáticamente con el formato de comodín <code class="bg-blue-100/80 text-blue-800 px-1 py-0.5 rounded font-mono font-semibold">%variable%</code> y su correspondiente valor de sustitución.
+              </div>
+            </div>
+            <div class="hidden sm:grid sm:grid-cols-12 gap-3 text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">
+              <div class="sm:col-span-5">Campo / Variable (field)</div>
+              <div class="sm:col-span-6">Valor a Reemplazar (value)</div>
+              <div class="sm:col-span-1 text-center">Acción</div>
+            </div>
+            <div class="space-y-3" data-purpose="variable-rows-list" id="variables-container"></div>
+            <div class="pt-2 flex items-center justify-between">
+              <button class="inline-flex items-center px-3.5 py-2 border border-brand-300 text-xs sm:text-sm font-semibold rounded-lg text-brand-700 bg-brand-50/80 hover:bg-brand-100 hover:border-brand-400 active:bg-brand-200 transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-2xs" id="btn-add-variable" type="button">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                + Agregar variable
+              </button>
+              <button class="text-xs text-slate-400 hover:text-rose-600 transition-colors" id="btn-clear-all" type="button">
+                Vaciar todas
+              </button>
+            </div>
+          </div>
+
+          <!-- Result banner (success / error) -->
+          <div class="hidden mx-5 sm:mx-6 mb-4 rounded-lg border p-3 text-xs font-medium" id="result-banner"></div>
+
+          <!-- Footer of card with submission -->
+          <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="text-xs text-slate-500 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              Validación de formato JSON activa
+            </div>
+            <div class="flex items-center space-x-3">
+              <button class="px-4 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs" type="button">
+                Guardar Borrador
+              </button>
+              <button class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 active:bg-brand-800 transition-all shadow-sm shadow-brand-500/30 focus:ring-2 focus:ring-offset-2 focus:ring-brand-500" id="btn-submit-send" type="submit">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                Enviar Correo
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT COLUMN: Sidebar Summary & Live JSON Preview -->
+    <aside class="lg:col-span-5 space-y-6" data-purpose="payload-preview-inspector">
+      <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-md overflow-hidden text-slate-200">
+        <div class="px-4 py-3 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 -ml-4 inline-block"></span>
+            <span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Vista previa JSON</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">Formato válido</span>
+            <button class="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" id="btn-copy-json" title="Copiar JSON" type="button">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            </button>
+          </div>
+        </div>
+        <div class="p-4 bg-slate-950/40">
+          <pre class="font-mono text-xs text-emerald-300 overflow-x-auto custom-scroll max-h-72 p-1 leading-relaxed" id="json-preview-display">[
+  </pre>
+        </div>
+        <div class="px-4 py-2.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+          <span>application/json</span>
+          <span id="bytes-counter">~199 bytes</span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Resumen de Envío</h3>
+        <dl class="divide-y divide-slate-100 text-xs">
+          <div class="py-2 flex justify-between">
+            <dt class="text-slate-500">Destinatario:</dt>
+            <dd class="font-medium text-slate-800 text-right truncate max-w-[200px]" id="summary-recipient">victorarangoq@cadena.com.co</dd>
+          </div>
+          <div class="py-2 flex justify-between">
+            <dt class="text-slate-500">Plantilla asignada:</dt>
+            <dd class="font-mono font-medium text-slate-800" id="summary-template">ID #846</dd>
+          </div>
+          <div class="py-2 flex justify-between">
+            <dt class="text-slate-500">Ciclo / Transmisión:</dt>
+            <dd class="font-mono text-slate-700" id="summary-cycle">1234 / TEST001</dd>
+          </div>
+          <div class="py-2 flex justify-between">
+            <dt class="text-slate-500">Total Variables:</dt>
+            <dd class="font-semibold text-brand-600" id="summary-var-count">3 variables</dd>
+          </div>
+        </dl>
+        <div class="bg-amber-50/70 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900 space-y-1">
+          <div class="font-semibold flex items-center gap-1">
+            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            Recomendación técnica
+          </div>
+          <p class="text-amber-800 leading-normal">
+            Asegúrese de que el identificador del campo contenga los delimitadores porcentuales (ej. <code class="font-mono bg-amber-100 px-1 rounded">%ncredito%</code>) para coincidir con la sintaxis del motor de plantillas.
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+<!-- END: MainContent -->
+
+<!-- Feedback Toast (hidden by default) -->
+<div class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center bg-slate-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl border border-slate-800 space-x-2" id="toast">
+  <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+  <span id="toast-message">Copiado al portapapeles</span>
+</div>
+
+<!-- BEGIN: JavaScript Logic -->
+<script data-purpose="variable-builder-interactive-logic">
+  // Initial sample data
+  const initialVariables = [
+    { field: "%ncredito%", value: "123456" },
+    { field: "%nombre_cliente%", value: "Carlos Mendoza" },
+    { field: "%monto_total%", value: "$450,000 COP" }
+  ];
+
+  let currentVariables = JSON.parse(JSON.stringify(initialVariables));
+
+  const form = document.getElementById('email-test-form');
+  const container = document.getElementById('variables-container');
+  const jsonDisplay = document.getElementById('json-preview-display');
+  const bytesCounter = document.getElementById('bytes-counter');
+  const rowCountBadge = document.getElementById('row-count-badge');
+  const summaryVarCount = document.getElementById('summary-var-count');
+  const summaryRecipient = document.getElementById('summary-recipient');
+  const summaryTemplate = document.getElementById('summary-template');
+  const summaryCycle = document.getElementById('summary-cycle');
+  const resultBanner = document.getElementById('result-banner');
+  const submitBtn = document.getElementById('btn-submit-send');
+
+  // Render row elements
+  function renderRows() {
+    container.innerHTML = "";
+
+    if (currentVariables.length === 0) {
+      container.innerHTML = `
+        <div class="py-8 text-center border-2 border-dashed border-slate-200 rounded-lg">
+          <svg class="w-8 h-8 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          </svg>
+          <p class="text-xs text-slate-500 font-medium">No hay variables definidas.</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Haga clic en "+ Agregar variable" para comenzar.</p>
+        </div>
+      `;
+    } else {
+      currentVariables.forEach((item, index) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = "grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center bg-slate-50/70 p-2.5 sm:p-2 rounded-lg border border-slate-200 transition-all hover:border-slate-300";
+        rowEl.innerHTML = `
+          <div class="sm:col-span-5 relative rounded-md">
+            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-mono text-xs">%</div>
+            <input type="text" data-idx="${index}" data-type="field" value="${item.field}" placeholder="%nombre_variable%" class="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
+          </div>
+          <div class="sm:col-span-6">
+            <input type="text" data-idx="${index}" data-type="value" value="${item.value}" placeholder="Valor o texto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
+          </div>
+          <div class="sm:col-span-1 flex justify-end sm:justify-center">
+            <button type="button" data-action="delete" data-idx="${index}" title="Eliminar variable" class="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+              <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        `;
+        container.appendChild(rowEl);
+      });
+    }
+
+    updateSync();
+  }
+
+  // Refresh preview & counts
+  function updateSync() {
+    const jsonString = JSON.stringify(currentVariables, null, 2);
+    jsonDisplay.textContent = jsonString;
+
+    const bytes = new Blob([jsonString]).size;
+    bytesCounter.textContent = `~${bytes} bytes`;
+
+    const count = currentVariables.length;
+    rowCountBadge.textContent = `${count} ${count === 1 ? 'variable configurada' : 'variables configuradas'}`;
+    summaryVarCount.textContent = `${count} ${count === 1 ? 'variable' : 'variables'}`;
+
+    const dest = document.getElementById('destinatario').value;
+    const tpl = document.getElementById('idPlantilla').value;
+    const cycle = document.getElementById('idCiclo').value;
+    const trans = document.getElementById('idTransmision').value;
+
+    if (summaryRecipient) summaryRecipient.textContent = dest || '—';
+    if (summaryTemplate) summaryTemplate.textContent = `ID #${tpl || '—'}`;
+    if (summaryCycle) summaryCycle.textContent = `${cycle || '—'} / ${trans || '—'}`;
+  }
+
+  // Toast trigger
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-message');
+    toastMsg.textContent = msg;
+    toast.classList.remove('translate-y-20', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    setTimeout(() => {
+      toast.classList.add('translate-y-20', 'opacity-0');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }, 2500);
+  }
+
+  // Result banner (success / error), shown above the footer
+  function showResult(type, message) {
+    resultBanner.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'bg-rose-50', 'border-rose-200', 'text-rose-800');
+    if (type === 'success') {
+      resultBanner.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+    } else {
+      resultBanner.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+    }
+    resultBanner.textContent = message;
+  }
+
+  // Event delegation on container for live input edits & delete
+  container.addEventListener('input', (e) => {
+    const idx = e.target.getAttribute('data-idx');
+    const type = e.target.getAttribute('data-type');
+    if (idx !== null && type) {
+      currentVariables[idx][type] = e.target.value;
+      updateSync();
+    }
+  });
+
+  container.addEventListener('click', (e) => {
+    const targetBtn = e.target.closest('button[data-action="delete"]');
+    if (targetBtn) {
+      const idx = parseInt(targetBtn.getAttribute('data-idx'), 10);
+      currentVariables.splice(idx, 1);
+      renderRows();
+    }
+  });
+
+  // Add new variable row
+  document.getElementById('btn-add-variable').addEventListener('click', () => {
+    currentVariables.push({ field: "%nueva_variable%", value: "" });
+    renderRows();
+    setTimeout(() => {
+      const inputs = container.querySelectorAll('input[data-type="field"]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }, 50);
+  });
+
+  // Clear all rows
+  document.getElementById('btn-clear-all').addEventListener('click', () => {
+    if (confirm('¿Está seguro de eliminar todas las variables?')) {
+      currentVariables = [];
+      renderRows();
+    }
+  });
+
+  // Reset initial demo
+  document.getElementById('btn-reset-demo').addEventListener('click', () => {
+    currentVariables = JSON.parse(JSON.stringify(initialVariables));
+    document.getElementById('destinatario').value = "victorarango.dev@gmail.com";
+    document.getElementById('asunto').value = "Correo de prueba";
+    document.getElementById('idPlantilla').value = "846";
+    document.getElementById('idCiclo').value = "1234";
+    document.getElementById('idTransmision').value = "TEST001";
+    resultBanner.classList.add('hidden');
+    renderRows();
+    showToast("Datos restaurados correctamente");
+  });
+
+  // Copy JSON to clipboard
+  document.getElementById('btn-copy-json').addEventListener('click', () => {
+    const jsonString = JSON.stringify(currentVariables, null, 2);
+    navigator.clipboard.writeText(jsonString).then(() => {
+      showToast("JSON copiado al portapapeles");
+    }).catch(() => {
+      showToast("Error al copiar");
+    });
+  });
+
+  // Keep summary card in sync with the basic fields
+  ['destinatario', 'idPlantilla', 'idCiclo', 'idTransmision'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateSync);
+  });
+
+  // REAL submission logic — replaces the old setTimeout simulation
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const to = document.getElementById('destinatario').value;
+    const subject = document.getElementById('asunto').value;
+    const templateId = document.getElementById('idPlantilla').value;
+    const idCycle = document.getElementById('idCiclo').value;
+    const idTransmision = document.getElementById('idTransmision').value;
+
+    if (!to || !subject || !templateId || !idTransmision) {
+      showResult('error', 'Complete los campos requeridos antes de enviar.');
+      return;
+    }
+
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    submitBtn.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      Enviando correo...
+    `;
+    resultBanner.classList.add('hidden');
+
+    const payload = {
+      to,
+      subject,
+      templateId,
+      idCycle,
+      idTransmision,
+      messageFields: currentVariables
+    };
+
+    try {
+      const response = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showResult('error', data.error || 'Error al enviar el correo.');
+      } else {
+        showResult('success', '¡Correo de prueba enviado exitosamente!');
+        showToast("¡Correo de prueba enviado exitosamente!");
+      }
+    } catch (err) {
+      showResult('error', 'Error de comunicación con el servidor.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      submitBtn.innerHTML = originalText;
+    }
+  });
+
+  // Initial render
+  renderRows();
+</script>
+
+</Layout>

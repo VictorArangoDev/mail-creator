@@ -8,7 +8,7 @@ const App = (props) => {
   const exportButton = document.getElementById("export-button");
   exportButton.addEventListener("click", async () => {
       await emailEditorRef.current.editor.exportHtml(function (data) {
-          const { design, html } = data;
+          const { html } = data;
           const today = new Date().toISOString().slice(0, 10);
           const filename = `plantilla-${today}.html`;
           const element = document.createElement("a");
@@ -27,7 +27,7 @@ exportMinifyButton.addEventListener("click", async () => {
   await emailEditorRef.current.editor.exportHtml(function (data) {
     //Limpia los datos y exporta el html en una sola linea 
 
-      const { design, html } = data;
+      const { html } = data;
       const htmlMinify = html
           .replace(/\n/g, '')             
           .replace(/\s\s+/g, ' ')          
@@ -96,24 +96,26 @@ const loadDesign = () => {
         const design = JSON.parse(event.target.result);
         emailEditorRef.current.editor.loadDesign(design);
       };
-      reader.readAsText(file);
+      reader.Blob(file);
     };
     fileInput.click();
   };
   
   return (
-    <div className='w-full h-screen' >
+    <div className='w-full h-[80%]' >
       
       <EmailEditor
+      
        minHeight={900}
         options={{
+
           displayMode: "email",
           features: {
             stockImages: true
           },
-          id: "editor-container"
+          id: "dy-email-editor"
         }}
-        projectId={9788}
+        projectId={276321}
         ref={emailEditorRef}
       />
       
