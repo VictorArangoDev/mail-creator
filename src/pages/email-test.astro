@@ -138,12 +138,12 @@ import Layout from "../layout/Layout.astro";
 
           <!-- Footer of card with submission -->
           <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="text-xs text-slate-500 flex items-center gap-1.5">
+            <div class="text-xs text-slate-500 flex items-center gap-1.5" id="draft-status-indicator">
               <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-              Validación de formato JSON activa
+              <span id="draft-status-text">Validación de formato JSON activa</span>
             </div>
             <div class="flex items-center space-x-3">
-              <button class="px-4 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs" type="button">
+              <button class="px-4 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-2xs" id="btn-submit-save" type="button">
                 Guardar Borrador
               </button>
               <button class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 active:bg-brand-800 transition-all shadow-sm shadow-brand-500/30 focus:ring-2 focus:ring-offset-2 focus:ring-brand-500" id="btn-submit-send" type="submit">
@@ -175,7 +175,7 @@ import Layout from "../layout/Layout.astro";
           </div>
         </div>
         <div class="p-4 bg-slate-950/40">
-          <pre class="font-mono text-xs text-emerald-300 overflow-x-auto custom-scroll max-h-72 p-1 leading-relaxed" id="json-preview-display">[
+          <pre class="font-mono text-xs text-emerald-300 overflow-x-auto custom-scroll max-h-72 p-1 leading-relaxed" id="json-preview-display">
   </pre>
         </div>
         <div class="px-4 py-2.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
@@ -234,6 +234,9 @@ import Layout from "../layout/Layout.astro";
     { field: "%monto_total%", value: "$450,000 COP" }
   ];
 
+  // Clave usada para persistir el borrador en localStorage
+  const DRAFT_STORAGE_KEY = 'pruebaEnvioCorreo:draft';
+
   let currentVariables = JSON.parse(JSON.stringify(initialVariables));
 
   const form = document.getElementById('email-test-form');
@@ -247,6 +250,8 @@ import Layout from "../layout/Layout.astro";
   const summaryCycle = document.getElementById('summary-cycle');
   const resultBanner = document.getElementById('result-banner');
   const submitBtn = document.getElementById('btn-submit-send');
+  const saveBtn = document.getElementById('btn-submit-save');
+  const draftStatusText = document.getElementById('draft-status-text');
 
   // Render row elements
   function renderRows() {
@@ -335,6 +340,79 @@ import Layout from "../layout/Layout.astro";
     resultBanner.textContent = message;
   }
 
+  // ---------------------------------------------------------------------
+  // Persistencia de borrador en localStorage
+  // ---------------------------------------------------------------------
+
+  // Recolecta el estado actual del formulario + variables
+  function getCurrentFormState() {
+    return {
+      destinatario: document.getElementById('destinatario').value,
+      asunto: document.getElementById('asunto').value,
+      idPlantilla: document.getElementById('idPlantilla').value,
+      idCiclo: document.getElementById('idCiclo').value,
+      idTransmision: document.getElementById('idTransmision').value,
+      variables: currentVariables,
+      savedAt: new Date().toISOString()
+    };
+  }
+
+  // Guarda el borrador actual en localStorage. Devuelve true/false según éxito.
+  function saveDraftToLocalStorage() {
+    try {
+      const state = getCurrentFormState();
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(state));
+      return true;
+    } catch (err) {
+      console.error('No se pudo guardar el borrador en localStorage:', err);
+      return false;
+    }
+  }
+
+  // Lee el borrador guardado, si existe. Devuelve null si no hay nada o falla el parseo.
+  function loadDraftFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('No se pudo leer el borrador de localStorage:', err);
+      return null;
+    }
+  }
+
+  // Elimina cualquier borrador guardado
+  function clearDraftFromLocalStorage() {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (err) {
+      console.error('No se pudo eliminar el borrador de localStorage:', err);
+    }
+  }
+
+  // Aplica un borrador cargado a los campos del formulario y a las variables
+  function applyDraftState(state) {
+    if (!state) return;
+    document.getElementById('destinatario').value = state.destinatario ?? '';
+    document.getElementById('asunto').value = state.asunto ?? '';
+    document.getElementById('idPlantilla').value = state.idPlantilla ?? '';
+    document.getElementById('idCiclo').value = state.idCiclo ?? '';
+    document.getElementById('idTransmision').value = state.idTransmision ?? '';
+    currentVariables = Array.isArray(state.variables) ? state.variables : [];
+    renderRows();
+  }
+
+  // Actualiza el pequeño indicador de estado junto al footer del formulario
+  function updateDraftStatusIndicator() {
+    const state = loadDraftFromLocalStorage();
+    if (state && state.savedAt && draftStatusText) {
+      const fecha = new Date(state.savedAt);
+      draftStatusText.textContent = `Borrador guardado localmente · ${fecha.toLocaleString()}`;
+    } else if (draftStatusText) {
+      draftStatusText.textContent = 'Validación de formato JSON activa';
+    }
+  }
+
   // Event delegation on container for live input edits & delete
   container.addEventListener('input', (e) => {
     const idx = e.target.getAttribute('data-idx');
@@ -372,8 +450,9 @@ import Layout from "../layout/Layout.astro";
     }
   });
 
-  // Reset initial demo
+  // Reset initial demo — ahora también limpia el borrador guardado en localStorage
   document.getElementById('btn-reset-demo').addEventListener('click', () => {
+    clearDraftFromLocalStorage();
     currentVariables = JSON.parse(JSON.stringify(initialVariables));
     document.getElementById('destinatario').value = "victorarango.dev@gmail.com";
     document.getElementById('asunto').value = "Correo de prueba";
@@ -382,7 +461,8 @@ import Layout from "../layout/Layout.astro";
     document.getElementById('idTransmision').value = "TEST001";
     resultBanner.classList.add('hidden');
     renderRows();
-    showToast("Datos restaurados correctamente");
+    updateDraftStatusIndicator();
+    showToast("Datos restaurados y borrador local eliminado");
   });
 
   // Copy JSON to clipboard
@@ -398,6 +478,28 @@ import Layout from "../layout/Layout.astro";
   // Keep summary card in sync with the basic fields
   ['destinatario', 'idPlantilla', 'idCiclo', 'idTransmision'].forEach(id => {
     document.getElementById(id).addEventListener('input', updateSync);
+  });
+
+  // Guardar Borrador — persiste el estado actual del formulario en localStorage
+  saveBtn.addEventListener('click', () => {
+    const to = document.getElementById('destinatario').value;
+    const subject = document.getElementById('asunto').value;
+    const templateId = document.getElementById('idPlantilla').value;
+    const idTransmision = document.getElementById('idTransmision').value;
+
+    if (!to || !subject || !templateId || !idTransmision) {
+      showResult('error', 'Complete los campos requeridos antes de guardar el borrador.');
+      return;
+    }
+
+    const ok = saveDraftToLocalStorage();
+    if (ok) {
+      showResult('success', 'Borrador guardado correctamente en este navegador.');
+      showToast('Borrador guardado en localStorage');
+      updateDraftStatusIndicator();
+    } else {
+      showResult('error', 'No se pudo guardar el borrador (almacenamiento no disponible).');
+    }
   });
 
   // REAL submission logic — replaces the old setTimeout simulation
@@ -460,8 +562,16 @@ import Layout from "../layout/Layout.astro";
     }
   });
 
-  // Initial render
-  renderRows();
+  // Al cargar la página: si existe un borrador guardado, se restaura automáticamente
+  const savedDraft = loadDraftFromLocalStorage();
+  if (savedDraft) {
+    applyDraftState(savedDraft);
+    showToast('Se cargó un borrador guardado anteriormente');
+  } else {
+    // Initial render (sin borrador previo)
+    renderRows();
+  }
+  updateDraftStatusIndicator();
 </script>
 
 </Layout>
