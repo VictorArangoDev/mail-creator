@@ -43,16 +43,21 @@ import Layout from "../layout/Layout.astro";
             <span class="text-xs text-slate-400">Todos los campos requeridos (*)</span>
           </div>
           <div class="p-6 space-y-5">
-            <!-- Destinatario -->
+            <!-- Destinatario(s) -->
             <div>
               <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5" for="destinatario">
-                Destinatario <span class="text-rose-500">*</span>
+                Destinatario(s) <span class="text-rose-500">*</span>
+                <span class="normal-case font-normal text-slate-400 tracking-normal">— separe varios correos con coma</span>
               </label>
               <div class="relative rounded-lg shadow-2xs">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
                 </div>
-                <input class="block w-full pl-9 pr-3 py-2.5 sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow text-slate-900 font-medium" id="destinatario" name="destinatario" placeholder="ejemplo@correo.com" required type="email" value="victorarango.dev@gmail.com" />
+                <input class="block w-full pl-9 pr-3 py-2.5 sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow text-slate-900 font-medium" id="destinatario" name="destinatario" placeholder="correo1@ejemplo.com, correo2@ejemplo.com" required type="email" multiple value="victorarango.dev@gmail.com" />
+              </div>
+              <div class="mt-1.5 flex items-center justify-between text-[11px]">
+                <span class="text-slate-400" id="recipients-count-hint">1 destinatario detectado</span>
+                <span class="hidden text-rose-500 font-medium" id="recipients-invalid-hint"></span>
               </div>
             </div>
             <!-- Asunto -->
@@ -88,6 +93,62 @@ import Layout from "../layout/Layout.astro";
                 <input class="block w-full px-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-slate-50/50 focus:bg-white text-slate-800 uppercase" id="idTransmision" name="idTransmision" placeholder="TEST001" required type="text" value="TEST001" />
               </div>
             </div>
+
+            <div class="space-y-5" ></div>
+
+            
+            <div class="pt-4 border-t border-slate-100 space-y-3.5" data-purpose="email-attachments-section">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-2.5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" id="enable-attachment"  class="sr-only peer">
+                      <div
+                        class="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
+                      </div>
+                    </label>
+                    <div>
+                      <label for="enable-attachment"
+                        class="text-xs font-semibold text-slate-800 cursor-pointer block leading-tight">Habilitar
+                        archivo adjunto</label>
+                      <span class="text-[11px] text-slate-400">Incluir documento en el envío de prueba</span>
+                    </div>
+                  </div>
+                  <span
+                    class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Opcional</span>
+                </div>
+
+                <div id="attachment-fields-container"
+                  class="space-y-2 bg-slate-50/70 p-3.5 rounded-lg border border-slate-200 hidden transition-all duration-300 ease-out  ">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
+                      for="attachmentPath">
+                      Ruta del archivo adjunto (Path o URL) <span class="text-rose-500">*</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400 font-mono">PDF, XML, ZIP · Máx 25MB</span>
+                  </div>
+                  <div class="relative rounded-lg shadow-2xs">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
+                        </path>
+                      </svg>
+                    </div>
+                    <input
+                      class="block w-full pl-9 pr-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white text-slate-800"
+                      id="attachmentPath" name="attachmentPath"
+                      placeholder="/storage/Outputs/20260930/9F6F62FB_0E07_4506_9947_D7B112F8445E/MUEN/1/95813773.pdf" type="text"
+                      value="">
+                  </div>
+                  <p class="text-[11px] text-slate-500 leading-normal">
+                    Especifique la ruta absoluta en servidor, bucket de almacenamiento o URL pública del documento
+                    adjunto.
+                  </p>
+                </div>
+              </div>
+            
+            
+            
           </div>
         </div>
 
@@ -135,6 +196,9 @@ import Layout from "../layout/Layout.astro";
 
           <!-- Result banner (success / error) -->
           <div class="hidden mx-5 sm:mx-6 mb-4 rounded-lg border p-3 text-xs font-medium" id="result-banner"></div>
+
+          <!-- Per-recipient send results (shown after a multi-recipient send) -->
+          <div class="hidden mx-5 sm:mx-6 mb-4 rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden" id="send-results-list"></div>
 
           <!-- Footer of card with submission -->
           <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -188,8 +252,8 @@ import Layout from "../layout/Layout.astro";
         <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Resumen de Envío</h3>
         <dl class="divide-y divide-slate-100 text-xs">
           <div class="py-2 flex justify-between">
-            <dt class="text-slate-500">Destinatario:</dt>
-            <dd class="font-medium text-slate-800 text-right truncate max-w-[200px]" id="summary-recipient">victorarangoq@cadena.com.co</dd>
+            <dt class="text-slate-500">Destinatario(s):</dt>
+            <dd class="font-medium text-slate-800 text-right truncate max-w-[220px]" id="summary-recipient" title="">victorarangoq@cadena.com.co</dd>
           </div>
           <div class="py-2 flex justify-between">
             <dt class="text-slate-500">Plantilla asignada:</dt>
@@ -227,6 +291,7 @@ import Layout from "../layout/Layout.astro";
 
 <!-- BEGIN: JavaScript Logic -->
 <script data-purpose="variable-builder-interactive-logic">
+
   // Initial sample data
   const initialVariables = [
     { field: "%ncredito%", value: "123456" },
@@ -252,6 +317,8 @@ import Layout from "../layout/Layout.astro";
   const submitBtn = document.getElementById('btn-submit-send');
   const saveBtn = document.getElementById('btn-submit-save');
   const draftStatusText = document.getElementById('draft-status-text');
+  const attachmentButton = document.getElementById('enable-attachment');
+  const attachmentContainer = document.getElementById('attachment-fields-container');
 
   // Render row elements
   function renderRows() {
@@ -306,14 +373,119 @@ import Layout from "../layout/Layout.astro";
     rowCountBadge.textContent = `${count} ${count === 1 ? 'variable configurada' : 'variables configuradas'}`;
     summaryVarCount.textContent = `${count} ${count === 1 ? 'variable' : 'variables'}`;
 
-    const dest = document.getElementById('destinatario').value;
     const tpl = document.getElementById('idPlantilla').value;
     const cycle = document.getElementById('idCiclo').value;
     const trans = document.getElementById('idTransmision').value;
 
-    if (summaryRecipient) summaryRecipient.textContent = dest || '—';
     if (summaryTemplate) summaryTemplate.textContent = `ID #${tpl || '—'}`;
     if (summaryCycle) summaryCycle.textContent = `${cycle || '—'} / ${trans || '—'}`;
+
+    updateRecipientsHint();
+  }
+
+  // ---------------------------------------------------------------------
+  // Manejo de múltiples destinatarios (separados por coma)
+  // ---------------------------------------------------------------------
+
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const SEND_DELAY_MS = 250; // pequeña pausa entre envíos para no saturar la API
+
+  // Convierte el contenido del input "Destinatario" en una lista de correos
+  // válidos e inválidos, separados por coma, sin duplicados (case-insensitive).
+  function parseRecipients(rawValue) {
+    const seen = new Set();
+    const valid = [];
+    const invalid = [];
+
+    (rawValue || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .forEach(email => {
+        const key = email.toLowerCase();
+        if (seen.has(key)) return; // ignora duplicados exactos
+        seen.add(key);
+        if (EMAIL_REGEX.test(email)) {
+          valid.push(email);
+        } else {
+          invalid.push(email);
+        }
+      });
+
+    return { valid, invalid };
+  }
+
+  // Actualiza el contador de destinatarios, el aviso de correos inválidos
+  // y la fila de resumen a la derecha.
+  function updateRecipientsHint() {
+    const raw = document.getElementById('destinatario').value;
+    const { valid, invalid } = parseRecipients(raw);
+    const countHint = document.getElementById('recipients-count-hint');
+    const invalidHint = document.getElementById('recipients-invalid-hint');
+
+    if (countHint) {
+      countHint.textContent = valid.length === 1
+        ? '1 destinatario detectado'
+        : `${valid.length} destinatarios detectados`;
+    }
+
+    if (invalidHint) {
+      if (invalid.length > 0) {
+        invalidHint.textContent = `${invalid.length} correo(s) inválido(s): ${invalid.join(', ')}`;
+        invalidHint.classList.remove('hidden');
+      } else {
+        invalidHint.classList.add('hidden');
+        invalidHint.textContent = '';
+      }
+    }
+
+    if (summaryRecipient) {
+      if (valid.length === 0) {
+        summaryRecipient.textContent = '—';
+        summaryRecipient.title = '';
+      } else if (valid.length === 1) {
+        summaryRecipient.textContent = valid[0];
+        summaryRecipient.title = valid[0];
+      } else {
+        summaryRecipient.textContent = `${valid[0]} +${valid.length - 1} más`;
+        summaryRecipient.title = valid.join(', ');
+      }
+    }
+
+    return { valid, invalid };
+  }
+
+  // Pequeña espera entre envíos (no bloquea la UI)
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Pinta la lista de resultados por destinatario tras un envío múltiple
+  function renderSendResults(results) {
+    const list = document.getElementById('send-results-list');
+    if (!list) return;
+
+    if (!results.length) {
+      list.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+
+    list.innerHTML = results.map(r => `
+      <div class="flex items-center justify-between gap-3 px-3 py-2 text-xs ${r.ok ? 'bg-emerald-50/60' : 'bg-rose-50/60'}">
+        <div class="flex items-center gap-2 min-w-0">
+          <svg class="w-3.5 h-3.5 shrink-0 ${r.ok ? 'text-emerald-500' : 'text-rose-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${r.ok
+              ? '<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>'
+              : '<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>'}
+          </svg>
+          <span class="font-medium text-slate-700 truncate">${r.email}</span>
+        </div>
+        <span class="${r.ok ? 'text-emerald-700' : 'text-rose-700'} text-right shrink-0">${r.message}</span>
+      </div>
+    `).join('');
+
+    list.classList.remove('hidden');
   }
 
   // Toast trigger
@@ -502,35 +674,64 @@ import Layout from "../layout/Layout.astro";
     }
   });
 
-  // REAL submission logic — replaces the old setTimeout simulation
+  // Envía un único correo a un destinatario y devuelve un resultado normalizado
+  async function sendToRecipient(recipientEmail, basePayload) {
+    try {
+      const response = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...basePayload, to: recipientEmail })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { email: recipientEmail, ok: false, message: data.error || `Error (HTTP ${response.status})` };
+      }
+      return { email: recipientEmail, ok: true, message: 'Enviado' };
+    } catch (err) {
+      return { email: recipientEmail, ok: false, message: 'Error de comunicación' };
+    }
+  }
+
+  // REAL submission logic — ahora soporta múltiples destinatarios separados por coma
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const to = document.getElementById('destinatario').value;
     const subject = document.getElementById('asunto').value;
     const templateId = document.getElementById('idPlantilla').value;
     const idCycle = document.getElementById('idCiclo').value;
     const idTransmision = document.getElementById('idTransmision').value;
 
-    if (!to || !subject || !templateId || !idTransmision) {
-      showResult('error', 'Complete los campos requeridos antes de enviar.');
+    const { valid: recipients, invalid: invalidRecipients } = parseRecipients(
+      document.getElementById('destinatario').value
+    );
+
+    if (recipients.length === 0 || !subject || !templateId || !idTransmision) {
+      showResult('error', recipients.length === 0
+        ? 'Ingrese al menos un destinatario válido antes de enviar.'
+        : 'Complete los campos requeridos antes de enviar.');
       return;
     }
+
+    resultBanner.classList.add('hidden');
+    renderSendResults([]);
 
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-    submitBtn.innerHTML = `
-      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-      </svg>
-      Enviando correo...
-    `;
-    resultBanner.classList.add('hidden');
 
-    const payload = {
-      to,
+    const setSendingLabel = (current, total) => {
+      submitBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        Enviando ${current} de ${total}...
+      `;
+    };
+
+    const basePayload = {
       subject,
       templateId,
       idCycle,
@@ -538,28 +739,34 @@ import Layout from "../layout/Layout.astro";
       messageFields: currentVariables
     };
 
-    try {
-      const response = await fetch('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+    const results = [];
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        showResult('error', data.error || 'Error al enviar el correo.');
-      } else {
-        showResult('success', '¡Correo de prueba enviado exitosamente!');
-        showToast("¡Correo de prueba enviado exitosamente!");
-      }
-    } catch (err) {
-      showResult('error', 'Error de comunicación con el servidor.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-      submitBtn.innerHTML = originalText;
+    // Envío secuencial: uno a la vez, con una pequeña pausa entre cada uno.
+    // Esto evita saturar la API y permite mostrar progreso real ("2 de 5...").
+    for (let i = 0; i < recipients.length; i++) {
+      setSendingLabel(i + 1, recipients.length);
+      const result = await sendToRecipient(recipients[i], basePayload);
+      results.push(result);
+      renderSendResults(results);
+      if (i < recipients.length - 1) await sleep(SEND_DELAY_MS);
     }
+
+    const successCount = results.filter(r => r.ok).length;
+    const failureCount = results.length - successCount;
+
+    let summaryMsg = `${successCount} de ${results.length} correo(s) enviado(s) correctamente.`;
+    if (invalidRecipients.length > 0) {
+      summaryMsg += ` Se omitieron ${invalidRecipients.length} correo(s) inválido(s): ${invalidRecipients.join(', ')}.`;
+    }
+
+    showResult(failureCount === 0 ? 'success' : 'error', summaryMsg);
+    showToast(failureCount === 0
+      ? `¡${successCount} correo(s) enviado(s) exitosamente!`
+      : `${successCount} enviados, ${failureCount} con error`);
+
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    submitBtn.innerHTML = originalText;
   });
 
   // Al cargar la página: si existe un borrador guardado, se restaura automáticamente
@@ -572,6 +779,23 @@ import Layout from "../layout/Layout.astro";
     renderRows();
   }
   updateDraftStatusIndicator();
+
+
+//Habilitar opcion de adjunto
+  attachmentButton.addEventListener('change', (event) => {
+    let isSendAttachment =  event.target.checked;
+
+    if (isSendAttachment) {
+    attachmentContainer.classList.remove('hidden');
+    attachmentContainer.classList.add('block'); // O 'flex' / 'visible' según tu CSS
+  } else {
+    attachmentContainer.classList.remove('block');
+    attachmentContainer.classList.add('hidden');
+  }
+   
+  });
+
+
 </script>
 
 </Layout>
