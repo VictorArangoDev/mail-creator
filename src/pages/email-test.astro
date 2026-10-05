@@ -94,61 +94,61 @@ import Layout from "../layout/Layout.astro";
               </div>
             </div>
 
-            <div class="space-y-5" ></div>
-
-            
+            <!-- ============================================================ -->
+            <!-- Adjuntos (0..n) — lista dinámica, misma lógica que variables -->
+            <!-- ============================================================ -->
             <div class="pt-4 border-t border-slate-100 space-y-3.5" data-purpose="email-attachments-section">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2.5">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" id="enable-attachment"  class="sr-only peer">
-                      <div
-                        class="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
-                      </div>
-                    </label>
-                    <div>
-                      <label for="enable-attachment"
-                        class="text-xs font-semibold text-slate-800 cursor-pointer block leading-tight">Habilitar
-                        archivo adjunto</label>
-                      <span class="text-[11px] text-slate-400">Incluir documento en el envío de prueba</span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="enable-attachment" class="sr-only peer">
+                    <div
+                      class="w-9 h-5 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600">
                     </div>
+                  </label>
+                  <div>
+                    <label for="enable-attachment"
+                      class="text-xs font-semibold text-slate-800 cursor-pointer block leading-tight">Habilitar
+                      archivos adjuntos</label>
+                    <span class="text-[11px] text-slate-400">Incluir 0 o más documentos en el envío de prueba</span>
                   </div>
-                  <span
-                    class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Opcional</span>
                 </div>
-
-                <div id="attachment-fields-container"
-                  class="space-y-2 bg-slate-50/70 p-3.5 rounded-lg border border-slate-200 hidden transition-all duration-300 ease-out  ">
-                  <div class="flex items-center justify-between mb-1">
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
-                      for="attachmentPath">
-                      Ruta del archivo adjunto (Path o URL) <span class="text-rose-500">*</span>
-                    </label>
-                    <span class="text-[11px] text-slate-400 font-mono">PDF, XML, ZIP · Máx 25MB</span>
-                  </div>
-                  <div class="relative rounded-lg shadow-2xs">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
-                        </path>
-                      </svg>
-                    </div>
-                    <input
-                      class="block w-full pl-9 pr-3 py-2 sm:text-sm font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white text-slate-800"
-                      id="attachmentPath" name="attachmentPath"
-                      placeholder="/storage/Outputs/20260930/9F6F62FB_0E07_4506_9947_D7B112F8445E/MUEN/1/95813773.pdf" type="text"
-                      value="">
-                  </div>
-                  <p class="text-[11px] text-slate-500 leading-normal">
-                    Especifique la ruta absoluta en servidor, bucket de almacenamiento o URL pública del documento
-                    adjunto.
-                  </p>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200" id="attachment-count-badge">0 adjuntos</span>
+                  <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Opcional</span>
                 </div>
               </div>
-            
-            
-            
+
+              <div id="attachment-fields-container"
+                class="space-y-3 bg-slate-50/70 p-3.5 rounded-lg border border-slate-200 hidden transition-all duration-300 ease-out">
+                <p class="text-[11px] text-slate-500 leading-normal">
+                  Especifique la ruta absoluta en servidor. Ejemplo:
+                  <code class="font-mono text-slate-600 break-all">/storage/Outputs/20260930/9F6F62FB_0E07_4506_9947_D7B112F8445E/MUEN/1/95813773.pdf</code>
+                </p>
+
+                <div class="flex items-center justify-between">
+                  <span class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    Rutas de archivos adjuntos
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-mono">PDF, XML, ZIP · Máx 25MB</span>
+                </div>
+
+                <div class="space-y-2" data-purpose="attachment-rows-list" id="attachments-container"></div>
+
+                <div class="pt-1 flex items-center justify-between">
+                  <button class="inline-flex items-center px-3 py-1.5 border border-brand-300 text-xs font-semibold rounded-lg text-brand-700 bg-brand-50/80 hover:bg-brand-100 hover:border-brand-400 active:bg-brand-200 transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-2xs" id="btn-add-attachment" type="button">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    Agregar adjunto
+                  </button>
+                  <button class="text-xs text-slate-400 hover:text-rose-600 transition-colors" id="btn-clear-attachments" type="button">
+                    Vaciar todos
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -267,6 +267,10 @@ import Layout from "../layout/Layout.astro";
             <dt class="text-slate-500">Total Variables:</dt>
             <dd class="font-semibold text-brand-600" id="summary-var-count">3 variables</dd>
           </div>
+          <div class="py-2 flex justify-between">
+            <dt class="text-slate-500">Adjuntos:</dt>
+            <dd class="font-semibold text-brand-600" id="summary-attachment-count">0 adjuntos</dd>
+          </div>
         </dl>
         <div class="bg-amber-50/70 border border-amber-200/60 rounded-lg p-3 text-xs text-amber-900 space-y-1">
           <div class="font-semibold flex items-center gap-1">
@@ -304,12 +308,16 @@ import Layout from "../layout/Layout.astro";
 
   let currentVariables = JSON.parse(JSON.stringify(initialVariables));
 
+  // Adjuntos: lista de rutas (strings). Vacía por defecto.
+  let currentAttachments = [];
+
   const form = document.getElementById('email-test-form');
   const container = document.getElementById('variables-container');
   const jsonDisplay = document.getElementById('json-preview-display');
   const bytesCounter = document.getElementById('bytes-counter');
   const rowCountBadge = document.getElementById('row-count-badge');
   const summaryVarCount = document.getElementById('summary-var-count');
+  const summaryAttachmentCount = document.getElementById('summary-attachment-count');
   const summaryRecipient = document.getElementById('summary-recipient');
   const summaryTemplate = document.getElementById('summary-template');
   const summaryCycle = document.getElementById('summary-cycle');
@@ -317,10 +325,25 @@ import Layout from "../layout/Layout.astro";
   const submitBtn = document.getElementById('btn-submit-send');
   const saveBtn = document.getElementById('btn-submit-save');
   const draftStatusText = document.getElementById('draft-status-text');
-  const attachmentButton = document.getElementById('enable-attachment');
-  const attachmentContainer = document.getElementById('attachment-fields-container');
 
-  // Render row elements
+  // Elementos de adjuntos
+  const attachmentToggle = document.getElementById('enable-attachment');
+  const attachmentContainer = document.getElementById('attachment-fields-container');
+  const attachmentsList = document.getElementById('attachments-container');
+  const attachmentCountBadge = document.getElementById('attachment-count-badge');
+
+  // Escapa texto para insertarlo de forma segura dentro de atributos HTML
+  function escapeAttr(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // ---------------------------------------------------------------------
+  // Variables: render
+  // ---------------------------------------------------------------------
   function renderRows() {
     container.innerHTML = "";
 
@@ -341,10 +364,10 @@ import Layout from "../layout/Layout.astro";
         rowEl.innerHTML = `
           <div class="sm:col-span-5 relative rounded-md">
             <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-mono text-xs">%</div>
-            <input type="text" data-idx="${index}" data-type="field" value="${item.field}" placeholder="%nombre_variable%" class="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
+            <input type="text" data-idx="${index}" data-type="field" value="${escapeAttr(item.field)}" placeholder="%nombre_variable%" class="w-full pl-6 pr-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
           </div>
           <div class="sm:col-span-6">
-            <input type="text" data-idx="${index}" data-type="value" value="${item.value}" placeholder="Valor o texto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
+            <input type="text" data-idx="${index}" data-type="value" value="${escapeAttr(item.value)}" placeholder="Valor o texto" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white">
           </div>
           <div class="sm:col-span-1 flex justify-end sm:justify-center">
             <button type="button" data-action="delete" data-idx="${index}" title="Eliminar variable" class="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
@@ -361,9 +384,91 @@ import Layout from "../layout/Layout.astro";
     updateSync();
   }
 
+  // ---------------------------------------------------------------------
+  // Adjuntos: helpers + render
+  // ---------------------------------------------------------------------
+
+  // Devuelve la lista final de adjuntos a enviar:
+  // - [] si el switch está apagado
+  // - rutas sin espacios, sin vacías y sin duplicados exactos
+  function getAttachmentsForPayload() {
+    if (!attachmentToggle.checked) return [];
+    const seen = new Set();
+    const result = [];
+    currentAttachments.forEach(p => {
+      const path = (p || '').trim();
+      if (!path || seen.has(path)) return;
+      seen.add(path);
+      result.push(path);
+    });
+    return result;
+  }
+
+  // Muestra/oculta el bloque de adjuntos según el estado del switch
+  function setAttachmentUI(enabled) {
+    attachmentToggle.checked = enabled;
+    if (enabled) {
+      attachmentContainer.classList.remove('hidden');
+      attachmentContainer.classList.add('block');
+      // Si se activa y no hay filas, deja una fila vacía lista para escribir
+      if (currentAttachments.length === 0) currentAttachments.push('');
+      renderAttachmentRows();
+    } else {
+      attachmentContainer.classList.remove('block');
+      attachmentContainer.classList.add('hidden');
+      updateSync();
+    }
+  }
+
+  function renderAttachmentRows() {
+    attachmentsList.innerHTML = "";
+
+    if (currentAttachments.length === 0) {
+      attachmentsList.innerHTML = `
+        <div class="py-5 text-center border-2 border-dashed border-slate-200 rounded-lg bg-white/60">
+          <p class="text-xs text-slate-500 font-medium">No hay adjuntos definidos.</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Haga clic en "Agregar adjunto" para incluir uno.</p>
+        </div>
+      `;
+    } else {
+      currentAttachments.forEach((path, index) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = "flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 transition-all hover:border-slate-300";
+        rowEl.innerHTML = `
+          <span class="shrink-0 w-5 text-center text-[11px] font-mono text-slate-400">${index + 1}</span>
+          <div class="relative flex-1 min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+              </svg>
+            </div>
+            <input type="text" data-att-idx="${index}" value="${escapeAttr(path)}" placeholder="/storage/Outputs/.../archivo.pdf" class="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:ring-1 focus:ring-brand-500 focus:border-brand-500 bg-white text-slate-800">
+          </div>
+          <button type="button" data-action="delete-attachment" data-att-idx="${index}" title="Eliminar adjunto" class="shrink-0 p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+            <svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </button>
+        `;
+        attachmentsList.appendChild(rowEl);
+      });
+    }
+
+    updateSync();
+  }
+
+  // ---------------------------------------------------------------------
   // Refresh preview & counts
+  // ---------------------------------------------------------------------
   function updateSync() {
-    const jsonString = JSON.stringify(currentVariables, null, 2);
+    const attachments = getAttachmentsForPayload();
+
+    // La vista previa muestra lo que realmente se enviará
+    const previewObject = {
+      messageFields: currentVariables,
+      attachments: attachments
+    };
+    const jsonString = JSON.stringify(previewObject, null, 2);
     jsonDisplay.textContent = jsonString;
 
     const bytes = new Blob([jsonString]).size;
@@ -372,6 +477,11 @@ import Layout from "../layout/Layout.astro";
     const count = currentVariables.length;
     rowCountBadge.textContent = `${count} ${count === 1 ? 'variable configurada' : 'variables configuradas'}`;
     summaryVarCount.textContent = `${count} ${count === 1 ? 'variable' : 'variables'}`;
+
+    const attCount = attachments.length;
+    const attLabel = `${attCount} ${attCount === 1 ? 'adjunto' : 'adjuntos'}`;
+    if (attachmentCountBadge) attachmentCountBadge.textContent = attLabel;
+    if (summaryAttachmentCount) summaryAttachmentCount.textContent = attLabel;
 
     const tpl = document.getElementById('idPlantilla').value;
     const cycle = document.getElementById('idCiclo').value;
@@ -516,7 +626,7 @@ import Layout from "../layout/Layout.astro";
   // Persistencia de borrador en localStorage
   // ---------------------------------------------------------------------
 
-  // Recolecta el estado actual del formulario + variables
+  // Recolecta el estado actual del formulario + variables + adjuntos
   function getCurrentFormState() {
     return {
       destinatario: document.getElementById('destinatario').value,
@@ -525,6 +635,8 @@ import Layout from "../layout/Layout.astro";
       idCiclo: document.getElementById('idCiclo').value,
       idTransmision: document.getElementById('idTransmision').value,
       variables: currentVariables,
+      attachmentsEnabled: attachmentToggle.checked,
+      attachments: currentAttachments,
       savedAt: new Date().toISOString()
     };
   }
@@ -562,7 +674,7 @@ import Layout from "../layout/Layout.astro";
     }
   }
 
-  // Aplica un borrador cargado a los campos del formulario y a las variables
+  // Aplica un borrador cargado a los campos del formulario, variables y adjuntos
   function applyDraftState(state) {
     if (!state) return;
     document.getElementById('destinatario').value = state.destinatario ?? '';
@@ -571,7 +683,11 @@ import Layout from "../layout/Layout.astro";
     document.getElementById('idCiclo').value = state.idCiclo ?? '';
     document.getElementById('idTransmision').value = state.idTransmision ?? '';
     currentVariables = Array.isArray(state.variables) ? state.variables : [];
+
+    // Compatibilidad con borradores antiguos (sin campos de adjuntos)
+    currentAttachments = Array.isArray(state.attachments) ? state.attachments : [];
     renderRows();
+    setAttachmentUI(Boolean(state.attachmentsEnabled));
   }
 
   // Actualiza el pequeño indicador de estado junto al footer del formulario
@@ -584,6 +700,10 @@ import Layout from "../layout/Layout.astro";
       draftStatusText.textContent = 'Validación de formato JSON activa';
     }
   }
+
+  // ---------------------------------------------------------------------
+  // Eventos: variables
+  // ---------------------------------------------------------------------
 
   // Event delegation on container for live input edits & delete
   container.addEventListener('input', (e) => {
@@ -622,10 +742,62 @@ import Layout from "../layout/Layout.astro";
     }
   });
 
-  // Reset initial demo — ahora también limpia el borrador guardado en localStorage
+  // ---------------------------------------------------------------------
+  // Eventos: adjuntos
+  // ---------------------------------------------------------------------
+
+  // Edición en vivo de una ruta (no re-renderiza para no perder el foco)
+  attachmentsList.addEventListener('input', (e) => {
+    const idx = e.target.getAttribute('data-att-idx');
+    if (idx !== null) {
+      currentAttachments[parseInt(idx, 10)] = e.target.value;
+      updateSync();
+    }
+  });
+
+  // Eliminar una fila
+  attachmentsList.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action="delete-attachment"]');
+    if (btn) {
+      const idx = parseInt(btn.getAttribute('data-att-idx'), 10);
+      currentAttachments.splice(idx, 1);
+      renderAttachmentRows();
+    }
+  });
+
+  // Agregar una nueva fila de adjunto
+  document.getElementById('btn-add-attachment').addEventListener('click', () => {
+    currentAttachments.push('');
+    renderAttachmentRows();
+    setTimeout(() => {
+      const inputs = attachmentsList.querySelectorAll('input[data-att-idx]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }, 50);
+  });
+
+  // Vaciar todos los adjuntos
+  document.getElementById('btn-clear-attachments').addEventListener('click', () => {
+    if (currentAttachments.length === 0) return;
+    if (confirm('¿Está seguro de eliminar todos los adjuntos?')) {
+      currentAttachments = [];
+      renderAttachmentRows();
+    }
+  });
+
+  // Habilitar / deshabilitar la sección de adjuntos
+  attachmentToggle.addEventListener('change', (event) => {
+    setAttachmentUI(event.target.checked);
+  });
+
+  // ---------------------------------------------------------------------
+  // Eventos generales
+  // ---------------------------------------------------------------------
+
+  // Reset initial demo — también limpia el borrador guardado y los adjuntos
   document.getElementById('btn-reset-demo').addEventListener('click', () => {
     clearDraftFromLocalStorage();
     currentVariables = JSON.parse(JSON.stringify(initialVariables));
+    currentAttachments = [];
     document.getElementById('destinatario').value = "victorarango.dev@gmail.com";
     document.getElementById('asunto').value = "Correo de prueba";
     document.getElementById('idPlantilla').value = "846";
@@ -633,13 +805,17 @@ import Layout from "../layout/Layout.astro";
     document.getElementById('idTransmision').value = "TEST001";
     resultBanner.classList.add('hidden');
     renderRows();
+    setAttachmentUI(false);
     updateDraftStatusIndicator();
     showToast("Datos restaurados y borrador local eliminado");
   });
 
-  // Copy JSON to clipboard
+  // Copy JSON to clipboard (variables + adjuntos)
   document.getElementById('btn-copy-json').addEventListener('click', () => {
-    const jsonString = JSON.stringify(currentVariables, null, 2);
+    const jsonString = JSON.stringify({
+      messageFields: currentVariables,
+      attachments: getAttachmentsForPayload()
+    }, null, 2);
     navigator.clipboard.writeText(jsonString).then(() => {
       showToast("JSON copiado al portapapeles");
     }).catch(() => {
@@ -694,7 +870,7 @@ import Layout from "../layout/Layout.astro";
     }
   }
 
-  // REAL submission logic — ahora soporta múltiples destinatarios separados por coma
+  // REAL submission logic — soporta múltiples destinatarios y múltiples adjuntos
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -713,6 +889,10 @@ import Layout from "../layout/Layout.astro";
         : 'Complete los campos requeridos antes de enviar.');
       return;
     }
+
+    // Si el switch de adjuntos está activo pero hay filas vacías, se ignoran
+    // (getAttachmentsForPayload ya las filtra). Se avisa en el resumen.
+    const attachments = getAttachmentsForPayload();
 
     resultBanner.classList.add('hidden');
     renderSendResults([]);
@@ -736,7 +916,8 @@ import Layout from "../layout/Layout.astro";
       templateId,
       idCycle,
       idTransmision,
-      messageFields: currentVariables
+      messageFields: currentVariables,
+      attachments : currentAttachments
     };
 
     const results = [];
@@ -755,6 +936,9 @@ import Layout from "../layout/Layout.astro";
     const failureCount = results.length - successCount;
 
     let summaryMsg = `${successCount} de ${results.length} correo(s) enviado(s) correctamente.`;
+    if (attachments.length > 0) {
+      summaryMsg += ` Adjuntos por correo: ${attachments.length}.`;
+    }
     if (invalidRecipients.length > 0) {
       summaryMsg += ` Se omitieron ${invalidRecipients.length} correo(s) inválido(s): ${invalidRecipients.join(', ')}.`;
     }
@@ -777,24 +961,9 @@ import Layout from "../layout/Layout.astro";
   } else {
     // Initial render (sin borrador previo)
     renderRows();
+    renderAttachmentRows();
   }
   updateDraftStatusIndicator();
-
-
-//Habilitar opcion de adjunto
-  attachmentButton.addEventListener('change', (event) => {
-    let isSendAttachment =  event.target.checked;
-
-    if (isSendAttachment) {
-    attachmentContainer.classList.remove('hidden');
-    attachmentContainer.classList.add('block'); // O 'flex' / 'visible' según tu CSS
-  } else {
-    attachmentContainer.classList.remove('block');
-    attachmentContainer.classList.add('hidden');
-  }
-   
-  });
-
 
 </script>
 

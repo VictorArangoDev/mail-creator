@@ -16,6 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
       idTransmision,
       fecha,
       messageFields,
+      attachments
     } = await request.json();
 
     const payload = {
@@ -27,13 +28,8 @@ export const POST: APIRoute = async ({ request }) => {
         mask: "Cadena",
         recipient: to,
         htmlbody: String(templateId),
-
-        messageFields: 
-          messageFields
-        ,
-
-        attachments: [],
-        urls: null,
+        messageFields: messageFields,
+        attachments: attachments,
         idUnico: null,
       },
 
