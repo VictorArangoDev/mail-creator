@@ -14,15 +14,16 @@
     "@astrojs/react": "^3.3.2",
     "@astrojs/tailwind": "^5.1.0",
     "@rive-app/canvas": "^2.18.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
-    "astro": "^4.7.1",
+    "astro": "^7.4.2",
     "html-minifier": "^4.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-email-editor": "^1.7.9",
     "resend": "^6.26.0",
-    "tailwindcss": "^3.4.3"
+    "tailwindcss": "^4.3.3"
   },
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }
