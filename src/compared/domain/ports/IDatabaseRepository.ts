@@ -1,12 +1,14 @@
-import type { TableSettingByProduct, Enviroment } from "../entities/TableConfig";
+import type { TableDefinitions } from "../config/tableDefinitions";
+import type { Enviroment } from "../entities/TableConfig";
 
 
 export interface IdDatabaseRepository {
    /**
-   * Obtiene todas las configuraciones de settingByproduc específica en un entorno dado
+   * Obtiene informacion de base de datos por filtro
    */
 
-    getTableSettingsByProductId(tableName:string, productId: number,  env:Enviroment) : Promise<TableSettingByProduct[]>
+   getRecordsByFilter(definition:TableDefinitions, filterValue:string | number, env:Enviroment) : Promise<Record<string, unknown>[]>;
+    
 
    /**
    * Verfica el estado de la conexión a la base de datos
