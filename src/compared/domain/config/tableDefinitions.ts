@@ -37,5 +37,23 @@ export const TABLE_DEFINITIONS : Record<string, TableDefinitions> = {
     filterColumn: 'ProductId',
     updateStrategy: 'SIMPLE',
     selectorType: 'PRODUCT',
+  },
+
+  Template: {
+    tableName: 'Template',
+    displayName: 'Template - Template HTML',
+    keyColumn: 'TemplateId',
+    valueColumns: ['TemplateId','Name','Description','Config','Visibility','Type','CreateAt','UpdateAt','Format','Mjml','Thumbnail','FileSchema','TemplateStatus','SupplierCode',],
+    filterColumn: 'TemplateId',
+    compositeKeys: ['TemplateId', "Name"],
+    updateStrategy: "COMPOSITE_KEY",
+    selectorType:"MANUAL"
   }
+  
+
+
+
+
+
+
 }
