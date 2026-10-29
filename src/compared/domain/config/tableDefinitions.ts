@@ -21,9 +21,9 @@ export const TABLE_DEFINITIONS : Record<string, TableDefinitions> = {
     Customers:{
         tableName: 'Customers',
         displayName: 'Customers - Clientes',
-        keyColumn: '',
+        keyColumn: 'Nit',
         valueColumns: ['Nit','Name','Descripcion'],
-        filterColumn: 'Name',
+        filterColumn: 'Nit',
         updateStrategy:'SIMPLE',
         selectorType: 'CUSTOMER'
     },
@@ -39,6 +39,7 @@ export const TABLE_DEFINITIONS : Record<string, TableDefinitions> = {
     selectorType: 'PRODUCT',
   },
 
+  //Templates Email
   Template: {
     tableName: 'Template',
     displayName: 'Template - Template HTML',
