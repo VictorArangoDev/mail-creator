@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 
-const MAIL_API_URL = import.meta.env.ENDPOINT;
+const MAIL_API_URL = import.meta.env.ENDPOINTTEST;
 
 
 

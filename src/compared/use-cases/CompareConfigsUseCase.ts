@@ -75,6 +75,8 @@ export class CompareConfigsUseCase {
       displayName: definition.displayName,
       filterValue,
       filterColumn: definition.filterColumn,
+      keyColumn: definition.keyColumn,
+      valueColumns: definition.valueColumns,
       stats: {
         totalTest: testData.length,
         totalProd: prodData.length,

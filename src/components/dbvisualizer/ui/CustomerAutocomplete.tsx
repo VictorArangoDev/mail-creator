@@ -48,11 +48,15 @@ export function CustomerAutocomplete({ onSelect }: Props) {
 
   return (
     <div className="flex flex-col relative">
-      <label className="text-xs font-semibold mb-1 text-slate-700">Customer (NIT)</label>
+      <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold tracking-wider text-slate-700">
+              CUSTOMER (NIT) <span className="text-red-500">*</span>
+            </label>
+          </div>
       <div className="flex gap-1 relative">
         <input
           type="text"
-          className="border border-slate-300 rounded px-3 py-2 min-w-[280px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full pl-8 pr-7 h-9 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-code-cell text-xs focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           placeholder="Buscar por NIT o nombre (ej: 890904996 o EPM)"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
@@ -62,8 +66,8 @@ export function CustomerAutocomplete({ onSelect }: Props) {
         {selected && (
           <button
             onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-sm"
-            title="Limpiar"
+            className="absolute right-2 text-slate-400 hover:text-slate-600 p-0.5 rounded transition-colors" 
+            title="Limpiar filtro"
           >✕</button>
         )}
       </div>

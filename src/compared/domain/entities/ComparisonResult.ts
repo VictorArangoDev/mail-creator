@@ -29,6 +29,8 @@ export interface ComparisonResult {
   displayName: string;
   filterValue: string | number;
   filterColumn: string;
+  keyColumn: string;
+  valueColumns: string[];
   stats: ComparisonStats;
   items: ComparisonItem[];
 }

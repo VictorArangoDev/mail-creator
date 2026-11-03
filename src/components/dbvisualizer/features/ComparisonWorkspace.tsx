@@ -70,10 +70,10 @@ export function ComparisonWorkspace({ tables }: Props) {
             </button>
           </div>
 
-          <ComparisonTable
-            items={result.items}
-            onSelectionChange={setSelectedItems}
-          />
+          <ComparisonTable 
+                result={result} 
+                onSelectionChange={setSelectedItems} 
+              />
         </>
       )}
 
