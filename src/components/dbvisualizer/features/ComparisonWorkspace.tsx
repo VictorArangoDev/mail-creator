@@ -2,42 +2,73 @@ import { useState } from 'react';
 import { ComparisonFilterBar, type TableDefLite } from './ComparisonFilterBar';
 import { StatsCards } from './StatsCards';
 import { ComparisonTable } from './ComparisonTable';
-import type { ComparisonResult, ComparisonItem  } from '../../../compared/domain/entities/ComparisonResult';
+import { useCartStore } from '../../../compared/presentation/useCartStore';
+import { TABLE_DEFINITIONS } from '../../../compared/domain/config/tableDefinitions'; 
+import type { ComparisonResult,ComparisonItem } from '../../../compared/domain/entities/ComparisonResult';
 
 interface Props {
   tables: TableDefLite[];
 }
 
+interface CompareContext {
+  customerNit: string | null;
+  productId: number | null;
+}
+
 export function ComparisonWorkspace({ tables }: Props) {
   const [result, setResult] = useState<ComparisonResult | null>(null);
+  const [context, setContext] = useState<CompareContext>({ customerNit: null, productId: null });
   const [selectedItems, setSelectedItems] = useState<ComparisonItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentFilter, setCurrentFilter] = useState<{ table: string; filter: string | number } | null>(null);
+  const [added, setAdded] = useState(false);
 
-  const handleCompare = async (params: {
-    table: string;
-    filter: string | number;
-    context: any;
-  }) => {
+  const addChanges = useCartStore(s => s.addChanges);
+
+  const handleCompare = async (params: any) => {
     setIsLoading(true);
     setError(null);
     setSelectedItems([]);
+    setResult(null);
+    setAdded(false);
+
     try {
-      const res = await fetch(`/api/compare?table=${encodeURIComponent(params.table)}&filter=${encodeURIComponent(String(params.filter))}`);
+      const newContext: CompareContext = {
+        customerNit: params.context.customer?.nit ?? null,
+        productId: params.context.product?.productId ?? null,
+      };
+
+      const res = await fetch(
+        `/api/compare?table=${encodeURIComponent(params.table)}&filter=${encodeURIComponent(String(params.filter))}`
+      );
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || `HTTP ${res.status}`);
       }
       const data: ComparisonResult = await res.json();
+
       setResult(data);
-      setCurrentFilter({ table: params.table, filter: params.filter });
+      setContext(newContext);
     } catch (e: any) {
       setError(e.message);
-      setResult(null);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAddToCart = () => {
+    if (!result || selectedItems.length === 0) return;
+    const def = TABLE_DEFINITIONS[result.tableName];
+    if (!def) return;
+
+    addChanges(def, result.filterValue, selectedItems, {
+      customerNit: context.customerNit,
+      productId: context.productId,
+    });
+
+    setAdded(true);
+    setSelectedItems([]);
+    setTimeout(() => setAdded(false), 2000);
   };
 
   return (
@@ -54,26 +85,28 @@ export function ComparisonWorkspace({ tables }: Props) {
         <>
           <StatsCards stats={result.stats} selectedCount={selectedItems.length} />
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <h2 className="text-lg font-bold text-slate-800">{result.displayName}</h2>
               <p className="text-sm text-slate-500">
-                {result.filterColumn} = {String(result.filterValue)} · {result.stats.totalComparados} registros
+                {result.filterColumn} = {String(result.filterValue)}
               </p>
             </div>
             <button
-              disabled={selectedItems.length === 0}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-              onClick={() => console.log('Semana 4: generar SQL para', selectedItems)}
+              onClick={handleAddToCart}
+              disabled={selectedItems.length === 0 || added}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                added ? 'bg-emerald-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              Generar SQL ({selectedItems.length})
+              <span className="material-symbols-outlined text-[18px]">
+                {added ? 'check' : 'playlist_add'}
+              </span>
+              {added ? '¡Agregado al script!' : `Agregar al script (${selectedItems.length})`}
             </button>
           </div>
 
-          <ComparisonTable 
-                result={result} 
-                onSelectionChange={setSelectedItems} 
-              />
+          <ComparisonTable result={result} onSelectionChange={setSelectedItems} />
         </>
       )}
 

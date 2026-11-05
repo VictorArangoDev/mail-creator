@@ -1,4 +1,4 @@
-import type { TableDefinitions } from '../domain/config/tableDefinitions';
+import type { TableDefinition } from '../domain/config/tableDefinitions';
 import type { ComparisonResult, ComparisonItem, FieldDifference } from '../domain/entities/ComparisonResult';
 
 function normalize(value: unknown): string {
@@ -9,7 +9,7 @@ function normalize(value: unknown): string {
 export class CompareConfigsUseCase {
 
   execute(
-    definition: TableDefinitions,
+    definition: TableDefinition,
     filterValue: string | number,
     testData: Record<string, unknown>[],
     prodData: Record<string, unknown>[]

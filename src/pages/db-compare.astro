@@ -3,6 +3,7 @@
 import Layout from "../layout/Layout.astro"
 import { ComparisonWorkspace } from '../components/dbvisualizer/features/ComparisonWorkspace'; 
 import { TABLE_DEFINITIONS } from '../compared/domain/config/tableDefinitions';
+import { CartPanel } from "../components/dbvisualizer/features/CartPanel";
 
 const tables = Object.values(TABLE_DEFINITIONS).map(t => ({
   tableName: t.tableName,
@@ -26,4 +27,5 @@ const tables = Object.values(TABLE_DEFINITIONS).map(t => ({
 
     <ComparisonWorkspace client:load tables={tables}/>
   </main>
+  <CartPanel client:only="react" />
 </Layout>

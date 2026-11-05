@@ -8,7 +8,7 @@ export interface CustomerOption{
 }
 
 export interface ProductOption {
-    productId: string;
+    productId: number;
     customerNit: string;
     name: string;
     description:string;
