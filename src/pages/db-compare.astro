@@ -1,31 +1,35 @@
 ---
-
-import Layout from "../layout/Layout.astro"
-import { ComparisonWorkspace } from '../components/dbvisualizer/features/ComparisonWorkspace'; 
-import { TABLE_DEFINITIONS } from '../compared/domain/config/tableDefinitions';
+import { ComparisonWorkspace } from "../components/dbvisualizer/features/ComparisonWorkspace";
+import { TABLE_DEFINITIONS } from "../compared/domain/config/tableDefinitions";
 import { CartPanel } from "../components/dbvisualizer/features/CartPanel";
+import AppLayout from "../components/dbvisualizer/ui/appLayout.astro";
 
-const tables = Object.values(TABLE_DEFINITIONS).map(t => ({
-  tableName: t.tableName,
-  displayName: t.displayName,
-  selectorType: t.selectorType,
-  manualPlaceHolder: t.manualPlaceHolder,
+const tables = Object.values(TABLE_DEFINITIONS).map((t) => ({
+  tableName: String(t.tableName),
+  displayName: String(t.displayName),
+  selectorType: String(t.selectorType ?? 'CONTEXT') as 'CONTEXT' | 'MANUAL',
+  contextLevel: t.contextLevel ? String(t.contextLevel) : undefined,
+  manualPlaceholder: t.manualPlaceHolder ? String(t.manualPlaceHolder) : '',
 }));
-
 ---
 
-
-
-<Layout title="DB Promote">
+<AppLayout title="DB Promote">
   <main class="max-w-7xl mx-auto px-6 py-6">
     <header class="mb-6">
-      <h1 class="text-3xl font-bold text-slate-800">DB Promote</h1>
-      <p class="text-sm text-slate-500 mt-1">
-        Comparación y sincronización de configuraciones entre TEST y PROD
-      </p>
+      <div class="flex flex-col gap-2.5 max-w-190">
+        <h1
+          class="m-0 font-['Bricolage_Grotesque',sans-serif] text-4xl leading-[1.05] font-bold tracking-[-0.03em] text-balance"
+        >
+          Revisa qué cambia antes de promover
+        </h1>
+        <p class="m-0 text-[17px] text-[#51626B] text-pretty">
+          Compara una tabla entre TEST y PROD, elige las diferencias que quieres
+          llevar y genera el script T-SQL.
+        </p>
+      </div>
     </header>
 
-    <ComparisonWorkspace client:load tables={tables}/>
+    <ComparisonWorkspace client:load tables={tables} />
   </main>
   <CartPanel client:only="react" />
-</Layout>
+</AppLayout>

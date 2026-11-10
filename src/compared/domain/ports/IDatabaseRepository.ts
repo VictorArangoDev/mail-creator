@@ -1,4 +1,4 @@
-import type { TableDefinitions } from "../config/tableDefinitions";
+import type { TableDefinition } from "../config/tableDefinitions";
 import type { Enviroment } from "../entities/TableConfig";
 
 
@@ -7,7 +7,7 @@ export interface IdDatabaseRepository {
    * Obtiene informacion de base de datos por filtro
    */
 
-   getRecordsByFilter(definition:TableDefinitions, filterValue:string | number, env:Enviroment) : Promise<Record<string, unknown>[]>;
+   getRecordsByFilter(definition:TableDefinition, filterValue:string | number, env:Enviroment) : Promise<Record<string, unknown>[]>;
     
 
    /**

@@ -2,7 +2,7 @@
 import type { IdDatabaseRepository } from '../../domain/ports/IDatabaseRepository'; 
 import type { Enviroment } from '../../domain/entities/TableConfig'; 
 import { getConnectionPool } from '../database/sqlServerConnection'; 
-import type { TableDefinitions } from '../../domain/config/tableDefinitions';
+import type { TABLE_DEFINITIONS, TableDefinition } from '../../domain/config/tableDefinitions';
 
 export class SqlServerTableRepository implements IdDatabaseRepository {
   
@@ -17,7 +17,7 @@ export class SqlServerTableRepository implements IdDatabaseRepository {
     }
   }
 
-    async getRecordsByFilter(definition: TableDefinitions, filterValue: string | number, env: Enviroment): Promise<Record<string, unknown>[]> {
+    async getRecordsByFilter(definition: TableDefinition, filterValue: string | number, env: Enviroment): Promise<Record<string, unknown>[]> {
        const pool = await getConnectionPool(env);
        
        //Tabla de TABLE_DEFINITIOS LISTA CONTROLADA

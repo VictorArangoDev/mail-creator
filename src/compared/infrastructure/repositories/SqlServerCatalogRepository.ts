@@ -46,7 +46,7 @@ export class sqlServerCatalogoRepository implements ICatalogRepository {
              `);
 
              return (await result).recordset.map(r => ({
-                productId: String(r.ProductId),
+                productId: Number(r.ProductId),
                 customerNit:String(r.CustomerNit),
                 name:r.Name ?? '',
                 description: r.Description ?? null,

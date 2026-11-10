@@ -1,6 +1,6 @@
-import type { PendingChange, GenerateScript, CartContext } from '../domain/entities/PendingChange';
-import type { TableDefinition } from '../domain/config/tableDefinitions';
-import { INSTANCES } from '../domain/config/instances'; 
+import type { GenerateScript, PendingChange } from "../domain/entities/PendingChange";
+import type { TableDefinition } from "../domain/config/tableDefinitions"; 
+import { INSTANCES } from "../domain/config/instances"; 
 
 interface GenerateOptions {
   direction?: 'TEST_TO_PROD' | 'PROD_TO_TEST';
@@ -12,7 +12,6 @@ export class GenerateSqlUseCase {
   execute(changes: PendingChange[], options: GenerateOptions = {}): GenerateScript {
     const { direction = 'TEST_TO_PROD', includeTransaction = true } = options;
 
-    // Agrupar por instancia destino → por tabla
     const byInstance = new Map<string, Map<string, PendingChange[]>>();
     for (const change of changes) {
       const targets = this.resolveInstances(change.definition);
@@ -62,25 +61,19 @@ export class GenerateSqlUseCase {
     const parts: string[] = [];
     let totalUpdates = 0, totalInserts = 0, totalWarnings = 0;
 
-    // 1. Header
     parts.push(this.buildHeader(instance, tableMap.size, direction));
-
-    // 2. USE + SET XACT_ABORT
     parts.push(`USE ${instance.targetDb};\nGO`);
     parts.push(`SET XACT_ABORT ON;\nGO`);
 
-    // 3. BEGIN TRY / BEGIN TRANSACTION
     if (includeTransaction) {
       parts.push(`BEGIN TRY\n    BEGIN TRANSACTION;`);
     }
 
-    // 4. Variables + validación de CustomerNit
     const context = this.collectContext(tableMap);
     if (context) {
       parts.push(this.buildContextBlock(context));
     }
 
-    // 5. Bloque por tabla
     let tableIndex = 1;
     for (const [tableName, changes] of tableMap) {
       const def = changes[0].definition;
@@ -94,7 +87,6 @@ export class GenerateSqlUseCase {
       }
     }
 
-    // 6. COMMIT / CATCH
     if (includeTransaction) {
       parts.push(
         `    COMMIT TRANSACTION;\n\n` +
@@ -121,45 +113,39 @@ export class GenerateSqlUseCase {
     const src = direction === 'TEST_TO_PROD' ? instance.sourceName : instance.targetName;
     return [
       '/*=========================================================',
-      ` * Migración a Producción`,
+      ` * Migración a ${direction === 'TEST_TO_PROD' ? 'Producción' : 'TEST'}`,
       ` * Aplicar en la instancia: ${dst}`,
-      ` * Instancia de pruebas vinculada: ${src}`,
+      ` * Instancia vinculada: ${src}`,
       ` * Generado: ${now}`,
       ` * Tablas: ${totalTables}`,
       '=========================================================*/',
     ].join('\n');
   }
 
-  /**
-   * Extrae el customerNit y el/los filtros del contexto para declararlos como variables
-   * y validarlos al inicio del script.
-   */
-  private collectContext(tableMap: Map<string, PendingChange[]>): CartContext & { filters: Map<string, any> } | null {
+  private collectContext(tableMap: Map<string, PendingChange[]>): {
+    filters: Map<string, any>;
+    customerNit: string | null;
+  } | null {
     const filters = new Map<string, any>();
     let customerNit: string | null = null;
-    let productId: number | null = null;
 
     for (const changes of tableMap.values()) {
       for (const change of changes) {
-        // Filtros únicos
         const filterCol = change.definition.filterColumn;
         if (!filters.has(filterCol)) filters.set(filterCol, change.filterValue);
-
-        // Contexto
         if (change.context.customerNit) customerNit = change.context.customerNit;
-        if (change.context.productId) productId = change.context.productId;
       }
     }
 
-    if (filters.size === 0) return null;
-    return { customerNit, productId, filters };
+    if (filters.size === 0 && !customerNit) return null;
+    return { filters, customerNit };
   }
 
-  private buildContextBlock(ctx: any): string {
+  private buildContextBlock(ctx: { filters: Map<string, any>; customerNit: string | null }): string {
     const lines: string[] = [];
 
     lines.push('    /*=========================================================');
-    lines.push('     * Definir variables del producto a migrar');
+    lines.push('     * Variables del contexto a migrar');
     lines.push('    =========================================================*/');
 
     if (ctx.customerNit) {
@@ -170,7 +156,6 @@ export class GenerateSqlUseCase {
       lines.push(`    DECLARE @${name} ${type} = ${this.sqlLiteral(value)};`);
     }
 
-    // Validación del CustomerNit (siempre, confirmado por el usuario)
     if (ctx.customerNit) {
       lines.push('');
       lines.push('    /*=========================================================');
@@ -206,18 +191,28 @@ export class GenerateSqlUseCase {
       '    =========================================================*/'
     );
 
-    const warnings = changes.filter(c => c.item.status === 'NUEVO_EN_PROD' && direction === 'TEST_TO_PROD');
-    const inserts = changes.filter(c => c.item.status === 'NUEVO_EN_TEST' && direction === 'TEST_TO_PROD');
+    const warnings = changes.filter(c =>
+      direction === 'TEST_TO_PROD'
+        ? c.item.status === 'NUEVO_EN_PROD'
+        : c.item.status === 'NUEVO_EN_TEST'
+    );
+    const inserts = changes.filter(c =>
+      direction === 'TEST_TO_PROD'
+        ? c.item.status === 'NUEVO_EN_TEST'
+        : c.item.status === 'NUEVO_EN_PROD'
+    );
     const updates = changes.filter(c => c.item.status === 'DIFERENTE');
 
     for (const w of warnings) {
-      parts.push(`    -- [WARNING] ${def.keyColumn}=${w.item.displayKey}: existe en PROD, no en TEST. Revisar manualmente.`);
+      parts.push(
+        `    -- [WARNING] ${def.keyColumn}=${w.item.displayKey}: existe solo en el origen. Revisar manualmente.`
+      );
       warningCount++;
     }
 
-    for (const insert of inserts) {
-      parts.push(this.buildInsertBlock(def, insert, instance, direction));
-      insertCount++;
+    if (inserts.length > 0) {
+      parts.push(this.buildInsertBlock(def, inserts, instance, direction));
+      insertCount += inserts.length;
     }
 
     if (updates.length > 0) {
@@ -228,54 +223,67 @@ export class GenerateSqlUseCase {
     return { block: parts.join('\n\n'), updates: updateCount, inserts: insertCount, warnings: warningCount };
   }
 
-  /**
-   * Construye un bloque INSERT con IF NOT EXISTS e IDENTITY_INSERT si aplica.
-   * Usa las compositeKeys para el WHERE si es COMPOSITE_KEY.
-   */
+  // ==================== INSERT ====================
+
   private buildInsertBlock(
     def: TableDefinition,
-    change: PendingChange,
+    inserts: PendingChange[],
     instance: any,
     direction: string
   ): string {
-    const row = direction === 'TEST_TO_PROD' ? change.item.testRaw : change.item.prodRaw;
-    if (!row) return '';
+    if (inserts.length === 0) return '';
 
     const columns = def.insertColumns ?? [def.filterColumn, def.keyColumn, ...def.valueColumns];
-    const sourcePrefix = instance.sourcePrefix;
+    const hasIdentity = def.hasIdentity === true && !!def.identityColumn;
+    const identityOn = hasIdentity ? `        SET IDENTITY_INSERT dbo.${def.tableName} ON;\n\n` : '';
+    const identityOff = hasIdentity ? `\n\n        SET IDENTITY_INSERT dbo.${def.tableName} OFF;` : '';
+    const catchIdentity = hasIdentity ? `        SET IDENTITY_INSERT dbo.${def.tableName} OFF;\n` : '';
 
-    // Llaves lógicas para el WHERE del IF NOT EXISTS
-    const keys = def.updateStrategy === 'COMPOSITE_KEY'
-      ? (def.compositeKeys ?? [def.keyColumn])
-      : [def.filterColumn, def.keyColumn];
+    let ifNotExistsWhere: string;
+    let selectWhere: string;
 
-    const whereConditions = keys
-      .map(col => `            ${col} = ${this.sqlLiteral(row[col])}`)
-      .join('\n            AND ');
+    if (def.updateStrategy === 'SIMPLE') {
+      const filterValue = inserts[0].filterValue;
+      const keyValues = inserts
+        .map(c => this.sqlLiteral(c.item.displayKey.split('|')[0]))
+        .join(', ');
 
-    // WHERE del SELECT (para traer la fila del origen)
-    const selectWhere = keys
-      .map(col => `${col} = ${this.sqlLiteral(row[col])}`)
-      .join(' AND ');
+      const cond = `${def.filterColumn} = ${this.sqlLiteral(filterValue)}`;
 
-    const identityOn = def.hasIdentity && def.identityColumn
-      ? `        SET IDENTITY_INSERT dbo.${def.tableName} ON;\n`
-      : '';
-    const identityOff = def.hasIdentity && def.identityColumn
-      ? `\n        SET IDENTITY_INSERT dbo.${def.tableName} OFF;`
-      : '';
+      if (def.filterColumn === def.keyColumn) {
+        ifNotExistsWhere = `WHERE ${cond}`;
+        selectWhere = cond;
+      } else {
+        ifNotExistsWhere = `WHERE ${cond}\n            AND ${def.keyColumn} IN (${keyValues})`;
+        selectWhere = `${cond} AND ${def.keyColumn} IN (${keyValues})`;
+      }
+    } else {
+      // COMPOSITE_KEY: WHERE con OR de (filterColumn = X AND keyColumn = Y)
+      const conditions = inserts
+        .map(change => {
+          const r = direction === 'TEST_TO_PROD' ? change.item.testRaw : change.item.prodRaw;
+          if (!r) return '';
 
-    const catchIdentity = def.hasIdentity && def.identityColumn
-      ? `        SET IDENTITY_INSERT dbo.${def.tableName} OFF;\n`
-      : '';
+          const filterValue = change.filterValue;
+          const keyValue = change.item.displayKey.split('|').pop() ?? change.item.displayKey;
+
+          return `(${def.filterColumn} = ${this.sqlLiteral(filterValue)} AND ${def.keyColumn} = ${this.sqlLiteral(keyValue)})`;
+        })
+        .filter(Boolean);
+
+      ifNotExistsWhere = `WHERE ${conditions.join('\n            OR ')}`;
+      selectWhere = conditions.join('\n                OR ');
+    }
 
     return [
-      `    /* Insertar en ${def.tableName} */`,
+      `    /*=========================================================`,
+      `     * Insertar en ${def.tableName} los registros que no existan`,
+      `    =========================================================*/`,
       `    IF NOT EXISTS`,
       `    (`,
       `        SELECT 1`,
       `        FROM dbo.${def.tableName}`,
-      `        WHERE ${whereConditions}`,
+      `        ${ifNotExistsWhere}`,
       `    )`,
       `    BEGIN TRY`,
       identityOn +
@@ -285,8 +293,8 @@ export class GenerateSqlUseCase {
       `        )`,
       `        SELECT`,
       `            ${columns.join(',\n            ')}`,
-      `        FROM ${sourcePrefix}.${def.tableName}`,
-      `        WHERE ${selectWhere};`,
+      `        FROM ${instance.sourcePrefix}.${def.tableName}`,
+      `        WHERE ${selectWhere};` +
       identityOff,
       `    END TRY`,
       `    BEGIN CATCH`,
@@ -295,12 +303,15 @@ export class GenerateSqlUseCase {
     ].filter(Boolean).join('\n');
   }
 
+  // ==================== UPDATE ====================
+
   private buildUpdatesBlock(
     def: TableDefinition,
     changes: PendingChange[],
     instance: any,
     direction: string
   ): string {
+    // ---- SIMPLE ----
     if (def.updateStrategy === 'SIMPLE') {
       const updates = changes.map(change => {
         const row = direction === 'TEST_TO_PROD' ? change.item.testRaw : change.item.prodRaw;
@@ -310,53 +321,68 @@ export class GenerateSqlUseCase {
           .map(col => `        ${col} = ${this.sqlLiteral(row[col])}`)
           .join(',\n');
 
-        const whereKey = String(change.item.displayKey).split('|')[0];
+        const whereColumns = Array.from(new Set([def.filterColumn, def.keyColumn]));
+        const whereConditions = whereColumns
+          .map(col => {
+            if (col === def.filterColumn) {
+              return `        ${col} = @${def.filterColumn}`;
+            }
+            return `        ${col} = ${this.sqlLiteral(change.item.displayKey.split('|')[0])}`;
+          })
+          .join('\n        AND ');
 
         return [
-          `    /* UPDATE ${def.keyColumn}=${whereKey} */`,
+          `    /* UPDATE ${def.keyColumn}=${change.item.displayKey} */`,
           `    UPDATE dbo.${def.tableName}`,
           `    SET`,
           setClauses,
-          `    WHERE ${def.filterColumn} = @${def.filterColumn}`,
-          `        AND ${def.keyColumn} = ${this.sqlLiteral(whereKey)};`,
+          `    WHERE ${whereConditions};`,
         ].join('\n');
       });
       return updates.join('\n\n');
     }
 
-    if (def.updateStrategy === 'COMPOSITE_KEY') {
-      const updates = changes.map(change => {
-        const row = direction === 'TEST_TO_PROD' ? change.item.testRaw : change.item.prodRaw;
-        if (!row) return '';
+    // ---- COMPOSITE_KEY (patrón nuevo) ----
+    // UPDATE D SET D.col = O.col
+    // FROM dbo.<tabla> D
+    // INNER JOIN <origen>.<tabla> O ON D.<filterColumn> = O.<filterColumn>
+    // WHERE O.<keyColumn> = '...' AND O.<filterColumn> = <valor>;
+   const updates = changes.map(change => {
+    const row = direction === 'TEST_TO_PROD' ? change.item.testRaw : change.item.prodRaw;
+    if (!row) return '';
 
-        const setClauses = def.valueColumns
-          .map(col => `        D.${col} = O.${col}`)
-          .join(',\n');
+    const compositeKeys = def.compositeKeys ?? [def.keyColumn];
 
-        const joinConditions = (def.compositeKeys ?? [def.keyColumn])
-          .map(col => `D.${col} = O.${col}`)
-          .join(' AND ');
+    // SET D.col = O.col para cada valueColumn
+    const setClauses = def.valueColumns
+      .map(col => `        D.${col} = O.${col}`)
+      .join(',\n');
 
-        const whereConditions = (def.compositeKeys ?? [def.keyColumn])
-          .map(col => `O.${col} = ${this.sqlLiteral(row[col])}`)
-          .join('\n            AND ');
+    // INNER JOIN ON D.key = O.key para CADA composite key
+    const joinConditions = compositeKeys
+      .map(col => `D.${col} = O.${col}`)
+      .join(' AND ');
 
-        return [
-          `    /* UPDATE COMPOSITE ${(def.compositeKeys ?? [def.keyColumn]).join(' + ')} */`,
-          `    UPDATE D`,
-          `    SET`,
-          setClauses,
-          `    FROM   dbo.${def.tableName} D`,
-          `    INNER JOIN ${instance.sourcePrefix}.${def.tableName} O`,
-          `           ON ${joinConditions}`,
-          `    WHERE  ${whereConditions};`,
-        ].join('\n');
-      });
-      return updates.join('\n\n');
-    }
+    // WHERE O.key = <valor exacto del row>
+    const whereConditions = compositeKeys
+      .map(col => `O.${col} = ${this.sqlLiteral(row[col])}`)
+      .join(' AND ');
 
-    return '';
-  }
+    return [
+      `    /* UPDATE ${compositeKeys.map(c => `${c}=${row[c]}`).join(', ')} */`,
+      `    UPDATE D`,
+      `    SET`,
+      setClauses,
+      `    FROM   ${def.tableName} D`,
+      `    INNER JOIN ${instance.sourcePrefix}.${def.tableName} O`,
+      `           ON ${joinConditions}`,
+      `    WHERE  ${whereConditions};`,
+    ].join('\n');
+  });
+  return updates.join('\n\n');
+}
+
+  // ==================== HELPERS ====================
 
   private resolveInstances(def: TableDefinition): string[] {
     if (def.targetInstance === 'BOTH') return ['PROJECT5X', 'CADCORE'];

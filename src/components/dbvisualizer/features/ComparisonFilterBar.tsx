@@ -1,152 +1,134 @@
-import { useState, useEffect } from 'react';
-import { CustomerAutocomplete } from '../ui/CustomerAutocomplete';
-import type { CustomerOption, ProductOption } from '../../../compared/domain/ports/ICatalogRepository'
+import { useState } from 'react';
+import { useContextStore } from '../../../compared/presentation/useContextStore'; 
+import type { ContextLevel } from '../../../compared/domain/config/tableDefinitions';
 
 export type TableDefLite = {
   tableName: string;
   displayName: string;
-  selectorType: 'PRODUCT' | 'CUSTOMER' | 'MANUAL';
+  selectorType: 'CONTEXT' | 'MANUAL';
+  contextLevel?: string;  
   manualPlaceholder?: string;
 };
 
 interface Props {
   tables: TableDefLite[];
-  onCompare: (params: {
-    table: string;
-    filter: string | number;
-    context: { customer?: CustomerOption; product?: ProductOption };
-  }) => void;
+  onCompare: (params: { table: string; filter: string | number }) => void;
   isLoading?: boolean;
+  onRequestContext: () => void;
 }
 
-export function ComparisonFilterBar({ tables, onCompare, isLoading = false }: Props) {
+function resolveContextLevel(table: TableDefLite | null): ContextLevel | null {
+  if (!table) return null;
+  if (table.contextLevel && table.contextLevel !== '') {
+    return table.contextLevel as ContextLevel;
+  }
+
+  const name = table.tableName.toLowerCase();
+  if (name === 'customers') return 'CUSTOMER';
+  if (name === 'settingsbysubproduct') return 'SUBPRODUCT';
+  if ([
+    'product', 'subproduct', 'settingsbyproduct', 'resources',
+    'rulesbyproduct', 'fileschemas', 'filesbyproduct',
+    'jsondianequivalences', 'jsondiantemplates', 'fieldbyproduct',
+  ].includes(name)) {
+    return 'PRODUCT';
+  }
+  return null;
+}
+
+export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestContext }: Props) {
+  const { context } = useContextStore();
   const [selectedTable, setSelectedTable] = useState<TableDefLite | null>(null);
-  const [customer, setCustomer] = useState<CustomerOption | null>(null);
-  const [products, setProducts] = useState<ProductOption[]>([]);
-  const [product, setProduct] = useState<ProductOption | null>(null);
   const [manualValue, setManualValue] = useState('');
-  const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // Cuando cambia el customer, cargamos productos por NIT
-  useEffect(() => {
-    setProduct(null);
-    if (!customer) { setProducts([]); return; }
-    setLoadingProducts(true);
-    fetch(`/api/catalogs/products?nit=${encodeURIComponent(customer.nit)}`)
-      .then(r => r.json())
-      .then((data: ProductOption[]) => setProducts(data))
-      .finally(() => setLoadingProducts(false));
-  }, [customer]);
+  const resolveFilter = (table: TableDefLite): { value: string | number | null; missing?: string } => {
+    if (table.selectorType === 'MANUAL') {
+      if (!manualValue.trim()) return { value: null, missing: 'ID' };
+      return { value: /^\d+$/.test(manualValue) ? Number(manualValue) : manualValue };
+    }
 
-  const canCompare = (() => {
-    if (!selectedTable) return false;
-    if (selectedTable.selectorType === 'PRODUCT') return !!product;
-    if (selectedTable.selectorType === 'CUSTOMER') return !!customer;
-    if (selectedTable.selectorType === 'MANUAL') return manualValue.trim() !== '';
-    return false;
-  })();
+    const level = resolveContextLevel(table);
+    if (level === 'CUSTOMER') {
+      if (!context.customer) return { value: null, missing: 'Customer' };
+      return { value: context.customer.nit };
+    }
+    if (level === 'PRODUCT') {
+      if (!context.product) return { value: null, missing: 'Product' };
+      return { value: context.product.productId };
+    }
+    if (level === 'SUBPRODUCT') {
+      if (!context.subProduct) return { value: null, missing: 'SubProduct' };
+      return { value: context.subProduct.subProductId };
+    }
+    
+    return { value: null, missing: 'contexto' };
+  };
+
+  const { value: filterValue, missing } = selectedTable ? resolveFilter(selectedTable) : { value: null };
+  const canCompare = !!selectedTable && filterValue !== null;
 
   const handleCompare = () => {
-    if (!selectedTable) return;
-    let filter: string | number = '';
-    if (selectedTable.selectorType === 'PRODUCT') filter = product!.productId;
-    if (selectedTable.selectorType === 'CUSTOMER') filter = customer!.nit;
-    if (selectedTable.selectorType === 'MANUAL') {
-      filter = /^\d+$/.test(manualValue) ? Number(manualValue) : manualValue;
-    }
-    onCompare({
-      table: selectedTable.tableName,
-      filter,
-      context: { customer: customer ?? undefined, product: product ?? undefined },
-    });
+    if (!selectedTable || filterValue === null) return;
+    onCompare({ table: selectedTable.tableName, filter: filterValue });
   };
 
   return (
-
-    <section className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col gap-4 relative">
-      <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[16px]">tune</span>
-          </div>
-          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">PARÁMETROS DE COMPARACIÓN</h2>
-        </div>
-        <span className="text-xs text-slate-400">Todos los filtros requeridos (*)</span>
+    <div className="flex flex-wrap gap-3 items-end p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col">
+        <label className="text-xs font-semibold mb-1 text-slate-700">Tabla</label>
+        <select
+          className="border border-slate-300 rounded px-3 py-2 min-w-[240px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          value={selectedTable?.tableName || ''}
+          onChange={(e) => {
+            const t = tables.find(x => x.tableName === e.target.value) || null;
+            console.log('🔍 Tabla seleccionada:', t, '| contextLevel resuelto:', resolveContextLevel(t));
+            setSelectedTable(t);
+            setManualValue('');
+          }}
+        >
+          <option value="">-- Selecciona una tabla --</option>
+          {tables.map(t => (
+            <option key={t.tableName} value={t.tableName}>{t.displayName}</option>
+          ))}
+        </select>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
 
-        <div className="md:col-span-4 flex flex-col gap-1.5">
-          <label className="text-xs font-semibold tracking-wider text-slate-700 flex items-center gap-1">
-            TABLA CONFIGURACIÓN <span className="text-red-500">*</span>
+      {selectedTable?.selectorType === 'MANUAL' && (
+        <div className="flex flex-col">
+          <label className="text-xs font-semibold mb-1 text-slate-700">
+            {selectedTable.tableName === 'Template' ? 'TemplateId' : 'ID'}
           </label>
-
-          <div className="relative">
-
-            <select
-              className="w-full bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-code-cell text-xs h-9 px-3 pr-8 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-              value={selectedTable?.tableName || ''}
-              onChange={(e) => {
-                const t = tables.find(x => x.tableName === e.target.value) || null;
-                console.log(`Tabla seleccionada: ${t}`)
-                setSelectedTable(t);
-                setCustomer(null); setProduct(null); setManualValue('');
-              }}
-            >
-              <option value="">-- Selecciona una tabla --</option>
-              {tables.map(t => (
-                <option key={t.tableName} value={t.tableName}>{t.displayName}</option>
-              ))}
-            </select>
-
-            <span className="material-symbols-outlined absolute right-2.5 top-2.5 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
-          </div>
+          <input
+            type="text"
+            className="border border-slate-300 rounded px-3 py-2 min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            placeholder={selectedTable.manualPlaceholder}
+            value={manualValue}
+            onChange={(e) => setManualValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && canCompare) handleCompare(); }}
+          />
         </div>
+      )}
 
-        <div className="md:col-span-3 flex flex-col gap-1.5">
-          {/* Customer (NIT) */}
-          {selectedTable && (selectedTable.selectorType === 'PRODUCT' || selectedTable.selectorType === 'CUSTOMER') && (
-            <CustomerAutocomplete onSelect={(c) => setCustomer(c)} />
-          )}
-        </div>
-        {selectedTable?.selectorType === 'PRODUCT' && (
-          <div className="md:col-span-3 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-wider text-slate-700">
-              PRODUCTO (DESTINO) <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-code-cell text-xs h-9 px-3 pr-8 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-                value={product?.productId ?? ''}
-                onChange={(e) => {
-                  const p = products.find(x => String(x.productId) === e.target.value) || null;
-                  setProduct(p);
-                }}
-                disabled={!customer || loadingProducts}
-              >
-                <option value="">
-                  {loadingProducts ? 'Cargando productos...' : !customer ? '-- Primero elige un Customer --' : '-- Selecciona un producto --'}
-                </option>
-                {products.map(p => (
-                  <option key={p.productId} value={String(p.productId)}>{p.label}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined absolute right-2.5 top-2.5 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
-            </div>
-          </div>
-        )}
-
-        <div className="md:col-span-2 flex items-center gap-2 absolute right-2 w-[150px]">
-          <button className="flex-1 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-            onClick={handleCompare}
-            disabled={!canCompare || isLoading}
+      {selectedTable?.selectorType === 'CONTEXT' && missing && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+          <span className="material-symbols-outlined text-[16px]">warning</span>
+          <span>Falta seleccionar: <strong>{missing}</strong></span>
+          <button
+            onClick={onRequestContext}
+            className="ml-2 text-blue-600 hover:text-blue-700 font-semibold underline"
           >
-            <span className="material-symbols-outlined text-[16px]">sync</span>
-            {isLoading ? 'Comparando...' : 'Comparar'}
+            Actualizar contexto
           </button>
-
         </div>
-      </div>
-    </section>
+      )}
 
+      <button
+        onClick={handleCompare}
+        disabled={!canCompare || isLoading}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded font-medium disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+      >
+        {isLoading ? 'Comparando...' : 'Comparar'}
+      </button>
+    </div>
   );
 }

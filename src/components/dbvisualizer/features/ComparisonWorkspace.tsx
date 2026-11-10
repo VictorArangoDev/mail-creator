@@ -2,42 +2,33 @@ import { useState } from 'react';
 import { ComparisonFilterBar, type TableDefLite } from './ComparisonFilterBar';
 import { StatsCards } from './StatsCards';
 import { ComparisonTable } from './ComparisonTable';
-import { useCartStore } from '../../../compared/presentation/useCartStore';
+import { ContextBanner } from './ContextBanner';
+import { useCartStore } from '../../../compared/presentation/useCartStore'; 
+import { useContextStore } from '../../../compared/presentation/useContextStore'; 
 import { TABLE_DEFINITIONS } from '../../../compared/domain/config/tableDefinitions'; 
-import type { ComparisonResult,ComparisonItem } from '../../../compared/domain/entities/ComparisonResult';
+import type { ComparisonResult, ComparisonItem } from '../../../compared/domain/entities/ComparisonResult';
 
 interface Props {
   tables: TableDefLite[];
 }
 
-interface CompareContext {
-  customerNit: string | null;
-  productId: number | null;
-}
-
 export function ComparisonWorkspace({ tables }: Props) {
   const [result, setResult] = useState<ComparisonResult | null>(null);
-  const [context, setContext] = useState<CompareContext>({ customerNit: null, productId: null });
   const [selectedItems, setSelectedItems] = useState<ComparisonItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
   const addChanges = useCartStore(s => s.addChanges);
+  const { context } = useContextStore();
 
-  const handleCompare = async (params: any) => {
+  const handleCompare = async (params: { table: string; filter: string | number }) => {
     setIsLoading(true);
     setError(null);
     setSelectedItems([]);
     setResult(null);
     setAdded(false);
-
     try {
-      const newContext: CompareContext = {
-        customerNit: params.context.customer?.nit ?? null,
-        productId: params.context.product?.productId ?? null,
-      };
-
       const res = await fetch(
         `/api/compare?table=${encodeURIComponent(params.table)}&filter=${encodeURIComponent(String(params.filter))}`
       );
@@ -45,10 +36,7 @@ export function ComparisonWorkspace({ tables }: Props) {
         const err = await res.json();
         throw new Error(err.error || `HTTP ${res.status}`);
       }
-      const data: ComparisonResult = await res.json();
-
-      setResult(data);
-      setContext(newContext);
+      setResult(await res.json());
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -62,8 +50,8 @@ export function ComparisonWorkspace({ tables }: Props) {
     if (!def) return;
 
     addChanges(def, result.filterValue, selectedItems, {
-      customerNit: context.customerNit,
-      productId: context.productId,
+      customerNit: context.customer?.nit ?? null,
+      productId: context.product?.productId ?? null,
     });
 
     setAdded(true);
@@ -71,9 +59,22 @@ export function ComparisonWorkspace({ tables }: Props) {
     setTimeout(() => setAdded(false), 2000);
   };
 
+  // Notifica al FilterBar que abra el modal de contexto.
+  // Como el modal vive dentro del ContextBanner, emitimos un evento global sencillo.
+  const handleRequestContext = () => {
+    window.dispatchEvent(new CustomEvent('db-promote:open-context-modal'));
+  };
+
   return (
     <div className="space-y-4">
-      <ComparisonFilterBar tables={tables} onCompare={handleCompare} isLoading={isLoading} />
+      <ContextBanner />
+
+      <ComparisonFilterBar
+        tables={tables}
+        onCompare={handleCompare}
+        isLoading={isLoading}
+        onRequestContext={handleRequestContext}
+      />
 
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-4 py-3 text-sm">
@@ -112,7 +113,7 @@ export function ComparisonWorkspace({ tables }: Props) {
 
       {!result && !error && (
         <div className="bg-white border border-dashed border-slate-300 rounded-xl py-16 text-center text-slate-400">
-          Selecciona una tabla y un filtro para comenzar la comparación
+          Selecciona una tabla para comenzar la comparación
         </div>
       )}
     </div>

@@ -43,7 +43,7 @@ export function SqlPreviewModal({ script, onClose }: Props) {
 
         {/* Body: código */}
         <div className="flex-1 overflow-y-auto bg-slate-900 p-4">
-          <pre className="text-xs font-mono text-emerald-300 whitespace-pre-wrap break-words leading-relaxed">
+          <pre className="text-xs font-mono text-emerald-300 whitespace-pre-wrap wrap-break-words leading-relaxed">
             {script.sql}
           </pre>
         </div>
