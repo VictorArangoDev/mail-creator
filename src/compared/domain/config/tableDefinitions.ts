@@ -56,7 +56,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
   SubProduct: {
     tableName: 'SubProduct',
     displayName: 'SubProduct',
-    keyColumn: 'SubProductId',
+    keyColumn: 'ProductId',
     valueColumns: ['Name', 'Description'],   
     filterColumn: 'ProductId',
     updateStrategy: 'SIMPLE',
@@ -101,17 +101,25 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     ],
   },
 
+  // CAMBIO: se empareja por llave natural (no por RulesByProductId, que es un identity
+  // distinto en cada ambiente y la tabla no tiene PK). El Id NO se inserta: PROD genera el suyo.
+  // VERIFICAR unicidad de (ProductId, RuleId, Priority, Step) en TEST y PROD antes de usar.
   RulesByProduct: {
     tableName: 'RulesByProduct',
     displayName: 'RulesByProduct',
-    keyColumn: 'RulesByProductId',
-    valueColumns: ['Data', 'DefaultValue', 'EquivalentValue'],
+    keyColumn: 'RulesByProductId',          
+    valueColumns: ['Data', 'DefaultValue', 'EquivalentValue', 'Criterion', 'Connector', 'Detail'],
     filterColumn: 'ProductId',
-    updateStrategy: 'SIMPLE',
+    updateStrategy: 'COMPOSITE_KEY',
+    compositeKeys: ['ProductId', 'RuleId', 'Priority', 'Step'],
     selectorType: 'CONTEXT',
     contextLevel: 'PRODUCT',
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
+    insertColumns: [
+      'ProductId', 'Data', 'DefaultValue', 'EquivalentValue', 'Criterion',
+      'RuleId', 'Priority', 'Connector', 'Step', 'Detail',
+    ],
   },
 
   FileSchemas: {
@@ -219,19 +227,24 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     targetInstance: 'PROJECT5X',
   },
 
-  // ========== RESOURCE ==========
-  ResourceConfiguration: {
-    tableName: 'ResourceConfiguration',
-    displayName: 'ResourceConfiguration',
-    keyColumn: 'ResourcesId',
-    valueColumns: ['ResourceContent', 'Data'],
-    filterColumn: 'ResourcesId',
-    updateStrategy: 'SIMPLE',
-    selectorType: 'CONTEXT',
-    contextLevel: 'RESOURCE',               
-    hasIdentity: false,
-    targetInstance: 'PROJECT5X',
-  },
+  // ========== RESOURCE   CONFIGURATION==========
+ ResourceConfiguration: {
+  tableName: 'ResourceConfiguration',
+  displayName: 'ResourceConfiguration',
+  keyColumn: 'ResourcesId',                  
+  valueColumns: ['RuleId', 'Priority', 'ResourceContent', 'Data', 'Criterion', 'Value', 'Connector'],
+  filterColumn: 'ProductId',                
+  updateStrategy: 'COMPOSITE_KEY',
+  compositeKeys: ['ProductId', 'ResourcesId'], 
+  selectorType: 'CONTEXT',
+  contextLevel: 'PRODUCT',
+  hasIdentity: true,
+  targetInstance: 'PROJECT5X',
+  insertColumns: [
+    'ResourcesId', 'ProductId', 'RuleId', 'Priority', 'ResourceContent',
+    'Data', 'Criterion', 'Value', 'Connector', 'Date',
+  ],
+},
 
   // ========== MANUAL ==========
   Template: {

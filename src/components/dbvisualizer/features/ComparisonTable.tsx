@@ -1,16 +1,16 @@
 import { useState, useMemo } from 'react';
-import type { ComparisonItem,ComparisonResult } from '../../../compared/domain/entities/ComparisonResult'; 
+import type { ComparisonItem, ComparisonResult } from '../../../compared/domain/entities/ComparisonResult';
 
 interface Props {
   result: ComparisonResult;
   onSelectionChange: (selected: ComparisonItem[]) => void;
 }
 
-const STATUS_CONFIG: Record<ComparisonItem['status'], { bg: string; text: string; dot: string; label: string }> = {
-  IGUAL:         { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Igual' },
-  DIFERENTE:     { bg: 'bg-red-50',     text: 'text-red-700',     dot: 'bg-red-500',     label: 'Diferente' },
-  NUEVO_EN_TEST: { bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-600',    label: 'Nuevo (TEST)' },
-  NUEVO_EN_PROD: { bg: 'bg-rose-50',    text: 'text-rose-700',    dot: 'bg-rose-600',    label: 'Nuevo (PROD)' },
+const STATUS_CONFIG: Record<ComparisonItem['status'], { bg: string; text: string; dot: string; label: string, icon: string }> = {
+  IGUAL: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Igual', icon: 'check_circle' },
+  DIFERENTE: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: 'Diferente', icon: 'cancel' },
+  NUEVO_EN_TEST: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-600', label: 'Nuevo (TEST)', icon: 'new_label' },
+  NUEVO_EN_PROD: { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-600', label: 'Nuevo (PROD)', icon: 'new_window' },
 };
 
 export function ComparisonTable({ result, onSelectionChange }: Props) {
@@ -188,7 +188,6 @@ export function ComparisonTable({ result, onSelectionChange }: Props) {
                   <span>PROD_PRIMARY</span>
                 </div>
               </th>
-             
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-800">
@@ -207,7 +206,9 @@ export function ComparisonTable({ result, onSelectionChange }: Props) {
                   </td>
                   <td className="py-3 px-2 align-top">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border font-medium text-[11px] ${style.bg} ${style.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
+                      <span className="material-symbols-outlined text-[12px] leading-none">
+                        {style.icon}
+                      </span>
                       {style.label}
                     </span>
                   </td>
@@ -220,7 +221,6 @@ export function ComparisonTable({ result, onSelectionChange }: Props) {
                   <td className="py-3 px-3 align-top min-w-0">
                     {renderValue(item, false)}
                   </td>
-                  
                 </tr>
               );
             })}

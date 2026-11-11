@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    const pool = await getConnectionPool('PROD');
+    const pool = await getConnectionPool('TEST');
     const result = await pool.request()
       .input('productId', productId)
       .query(`

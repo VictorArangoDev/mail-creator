@@ -77,11 +77,11 @@ export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestCon
       <div className="flex flex-col">
         <label className="text-xs font-semibold mb-1 text-slate-700">Tabla</label>
         <select
-          className="border border-slate-300 rounded px-3 py-2 min-w-[240px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="border border-slate-300 rounded px-3 py-2 min-w-60 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           value={selectedTable?.tableName || ''}
           onChange={(e) => {
             const t = tables.find(x => x.tableName === e.target.value) || null;
-            console.log('🔍 Tabla seleccionada:', t, '| contextLevel resuelto:', resolveContextLevel(t));
+            //console.log('🔍 Tabla seleccionada:', t, '| contextLevel resuelto:', resolveContextLevel(t));
             setSelectedTable(t);
             setManualValue('');
           }}
@@ -100,7 +100,7 @@ export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestCon
           </label>
           <input
             type="text"
-            className="border border-slate-300 rounded px-3 py-2 min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border border-slate-300 rounded px-3 py-2 min-w-50 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder={selectedTable.manualPlaceholder}
             value={manualValue}
             onChange={(e) => setManualValue(e.target.value)}
