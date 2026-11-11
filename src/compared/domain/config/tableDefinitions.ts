@@ -1,6 +1,6 @@
 export type UpdateStrategy = 'SIMPLE' | 'COMPOSITE_KEY';
 export type SelectorType = 'CONTEXT' | 'MANUAL';
-export type ContextLevel = 'CUSTOMER' | 'PRODUCT' | 'SUBPRODUCT';
+export type ContextLevel = 'CUSTOMER' | 'PRODUCT' | 'SUBPRODUCT' | 'RESOURCE';  // ← agregado RESOURCE
 export type TargetInstance = 'PROJECT5X' | 'CADCORE' | 'BOTH';
 
 export interface TableDefinition {
@@ -13,7 +13,7 @@ export interface TableDefinition {
   compositeKeys?: string[];
   selectorType: SelectorType;
   contextLevel?: ContextLevel;
-  manualPlaceHolder?: string;
+  manualPlaceholder?: string;   
   hasIdentity?: boolean;
   identityColumn?: string;
   targetInstance?: TargetInstance;
@@ -27,7 +27,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     tableName: 'Customers',
     displayName: 'Customers',
     keyColumn: 'Nit',
-    valueColumns: ['Nit', 'Name'],
+    valueColumns: ['Name', 'Description'],   
     filterColumn: 'Nit',
     updateStrategy: 'SIMPLE',
     selectorType: 'CONTEXT',
@@ -47,17 +47,17 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     updateStrategy: 'SIMPLE',
     selectorType: 'CONTEXT',
     contextLevel: 'PRODUCT',
-    hasIdentity: false,
+    hasIdentity: true,
     identityColumn: 'ProductId',
     targetInstance: 'PROJECT5X',
     insertColumns: ['ProductId', 'CustomerNit', 'Name', 'Description', 'Type'],
   },
-  
+
   SubProduct: {
     tableName: 'SubProduct',
     displayName: 'SubProduct',
     keyColumn: 'SubProductId',
-    valueColumns: ['ProductId', 'Name'],
+    valueColumns: ['Name', 'Description'],   
     filterColumn: 'ProductId',
     updateStrategy: 'SIMPLE',
     selectorType: 'CONTEXT',
@@ -65,8 +65,8 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     hasIdentity: true,
     identityColumn: 'SubProductId',
     targetInstance: 'PROJECT5X',
+    insertColumns: ['SubProductId', 'ProductId', 'Name', 'Description'],
   },
-
 
   SettingsByProduct: {
     tableName: 'SettingsByProduct',
@@ -77,7 +77,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     updateStrategy: 'SIMPLE',
     selectorType: 'CONTEXT',
     contextLevel: 'PRODUCT',
-    hasIdentity: true,
+    hasIdentity: false,                      
     targetInstance: 'PROJECT5X',
     insertColumns: ['ProductId', 'SettingId', 'Value'],
   },
@@ -85,16 +85,22 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
   Resources: {
     tableName: 'Resources',
     displayName: 'Resources',
-    keyColumn: 'ResourcesId',
-    valueColumns: ['Space', 'Properties'],
+    keyColumn: 'Space',                      
+    valueColumns: ['TypeResource', 'Properties', 'Transformation', 'OutputFormat', 'Version'],
     filterColumn: 'ProductId',
-    updateStrategy: 'SIMPLE',
+    updateStrategy: 'COMPOSITE_KEY',         
+    compositeKeys: ['ProductId', 'Space'],   
     selectorType: 'CONTEXT',
     contextLevel: 'PRODUCT',
     hasIdentity: true,
     identityColumn: 'ResourcesId',
     targetInstance: 'PROJECT5X',
+    insertColumns: [
+      'ResourcesId', 'ProductId', 'Space', 'TypeResource', 'Properties',
+      'Transformation', 'OutputFormat', 'Version', 'Date',
+    ],
   },
+
   RulesByProduct: {
     tableName: 'RulesByProduct',
     displayName: 'RulesByProduct',
@@ -107,6 +113,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
+
   FileSchemas: {
     tableName: 'FileSchemas',
     displayName: 'FileSchemas',
@@ -124,19 +131,28 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
       'FilesByProductId', 'DatabaseSchema',
     ],
   },
+
   FilesByProduct: {
     tableName: 'FilesByProduct',
-    displayName: 'FilesByProduct',
-    keyColumn: 'ProductId',
-    valueColumns: ['Patron', 'Extension'],
+    displayName: 'Archivos por Producto',
+    keyColumn: 'Patron',
+    valueColumns: ['Extension'],
     filterColumn: 'ProductId',
-    updateStrategy: 'SIMPLE',
+    updateStrategy: 'COMPOSITE_KEY',
+    compositeKeys: ['ProductId', 'Patron'],
     selectorType: 'CONTEXT',
     contextLevel: 'PRODUCT',
     hasIdentity: true,
     identityColumn: 'FilesByProductId',
     targetInstance: 'PROJECT5X',
+    insertColumns: [
+      'FilesByProductId', 'ProductId', 'Patron', 'Extension', 'TypesOfMappingId',
+      'Required', 'DLL', 'ClaseEntityC#', 'ClaseReglasC#', 'Separador', 'Header',
+      'CommitType', 'PosicionType', 'GeneralInfo', 'FinalType', 'TextEncoding',
+      'TextQualifier', 'LineSeparator', 'LengthPosicionType', 'GroupBy',
+    ],
   },
+
   JsonDianEquivalences: {
     tableName: 'JsonDianEquivalences',
     displayName: 'JsonDianEquivalences',
@@ -149,6 +165,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
+
   JsonDianTemplates: {
     tableName: 'JsonDianTemplates',
     displayName: 'TJsonDianTemplates',
@@ -161,6 +178,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
+
   FieldByProduct: {
     tableName: 'FieldByProduct',
     displayName: 'FieldByProduct',
@@ -173,6 +191,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
+
   SettingsByEN: {
     tableName: 'SettingsByEN',
     displayName: 'SettingsByEN',
@@ -181,7 +200,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     filterColumn: 'ENId',
     updateStrategy: 'SIMPLE',
     selectorType: 'MANUAL',
-    manualPlaceHolder: 'Ej: 1',
+    manualPlaceholder: 'Ej: 1',              
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
@@ -209,7 +228,7 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     filterColumn: 'ResourcesId',
     updateStrategy: 'SIMPLE',
     selectorType: 'CONTEXT',
-    contextLevel: 'PRODUCT',
+    contextLevel: 'RESOURCE',               
     hasIdentity: false,
     targetInstance: 'PROJECT5X',
   },
@@ -224,10 +243,10 @@ export const TABLE_DEFINITIONS: Record<string, TableDefinition> = {
     updateStrategy: 'COMPOSITE_KEY',
     compositeKeys: ['TemplateId', 'Name'],
     selectorType: 'MANUAL',
-    manualPlaceHolder: 'Ej: 10900',
+    manualPlaceholder: 'Ej: 10900',          
     hasIdentity: true,
     identityColumn: 'TemplateId',
-    targetInstance: 'PROJECT5X',
+    targetInstance: 'PROJECT5X',             
     insertColumns: [
       'TemplateId', 'Name', 'Description', 'Config', 'Visibility', 'Type',
       'CreateAt', 'UpdateAt', 'Format', 'Mjml', 'Thumbnail', 'FileSchema',

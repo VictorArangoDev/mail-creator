@@ -9,7 +9,7 @@ const tables = Object.values(TABLE_DEFINITIONS).map((t) => ({
   displayName: String(t.displayName),
   selectorType: String(t.selectorType ?? 'CONTEXT') as 'CONTEXT' | 'MANUAL',
   contextLevel: t.contextLevel ? String(t.contextLevel) : undefined,
-  manualPlaceholder: t.manualPlaceHolder ? String(t.manualPlaceHolder) : '',
+  manualPlaceholder: t.manualPlaceholder ? String(t.manualPlaceholder) : '',
 }));
 ---
 

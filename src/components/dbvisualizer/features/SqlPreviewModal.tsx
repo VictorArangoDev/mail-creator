@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import type { GenerateScript } from '../../../compared/domain/entities/PendingChange';
+import type { GenerateScript } from '../../../compared/domain/entities/PendingChange'; 
+import type { SyncDirection } from '../../../compared/presentation/useCartStore'; 
+
 
 interface Props {
   script: GenerateScript;
+  direction: SyncDirection;
   onClose: () => void;
 }
 
-export function SqlPreviewModal({ script, onClose }: Props) {
+export function SqlPreviewModal({ script, direction, onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -19,8 +22,10 @@ export function SqlPreviewModal({ script, onClose }: Props) {
     const blob = new Blob([script.sql], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const date = new Date().toISOString().substring(0, 10);
+    const dirLabel = direction === 'TEST_TO_PROD' ? 'test-to-prod' : 'prod-to-test';
     a.href = url;
-    a.download = `db-promote-${new Date().toISOString().substring(0, 10)}.sql`;
+    a.download = `db-promote-${dirLabel}-${date}.sql`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -31,7 +36,18 @@ export function SqlPreviewModal({ script, onClose }: Props) {
         {/* Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Script SQL generado</h2>
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              Script SQL generado
+              <span
+                className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                  direction === 'TEST_TO_PROD'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                {direction === 'TEST_TO_PROD' ? 'TEST → PROD' : 'PROD → TEST'}
+              </span>
+            </h2>
             <p className="text-sm text-slate-500">
               {script.stats.tables} tabla(s) · {script.stats.updates} UPDATE · {script.stats.inserts} INSERT · {script.stats.warnings} warning(s)
             </p>
@@ -41,14 +57,14 @@ export function SqlPreviewModal({ script, onClose }: Props) {
           </button>
         </div>
 
-        {/* Body: código */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto bg-slate-900 p-4">
-          <pre className="text-xs font-mono text-emerald-300 whitespace-pre-wrap wrap-break-words leading-relaxed">
+          <pre className="text-xs font-mono text-emerald-300 whitespace-pre-wrap break-words leading-relaxed">
             {script.sql}
           </pre>
         </div>
 
-        {/* Footer: acciones */}
+        {/* Footer */}
         <div className="p-4 border-t border-slate-200 flex gap-2 justify-end">
           <button
             onClick={handleDownload}

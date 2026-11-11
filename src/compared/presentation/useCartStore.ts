@@ -4,8 +4,12 @@ import type { PendingChange, CartContext } from '../domain/entities/PendingChang
 import type { TableDefinition } from '../domain/config/tableDefinitions'; 
 import type { ComparisonItem } from '../domain/entities/ComparisonResult';
 
+export type SyncDirection = 'TEST_TO_PROD' | 'PROD_TO_TEST';
+
 interface CartState {
   changes: PendingChange[];
+  direction: SyncDirection;
+
   addChanges: (
     def: TableDefinition,
     filterValue: string | number,
@@ -13,13 +17,16 @@ interface CartState {
     context: CartContext
   ) => void;
   removeChange: (id: string) => void;
+  removeByTable: (tableName: string) => void;
   clear: () => void;
+  setDirection: (direction: SyncDirection) => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       changes: [],
+      direction: 'TEST_TO_PROD',
 
       addChanges: (def, filterValue, items, context) => {
         const newChanges: PendingChange[] = items
@@ -43,8 +50,19 @@ export const useCartStore = create<CartState>()(
         set(state => ({ changes: state.changes.filter(c => c.id !== id) }));
       },
 
+      removeByTable: (tableName) => {
+        set(state => ({
+          changes: state.changes.filter(c => c.definition.tableName !== tableName),
+        }));
+      },
+
       clear: () => set({ changes: [] }),
+
+      setDirection: (direction) => set({ direction }),
     }),
-    { name: 'db-promote-cart' }
+    {
+      name: 'db-promote-cart',
+      partialize: (state) => ({ changes: state.changes, direction: state.direction }),
+    }
   )
 );

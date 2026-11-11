@@ -254,8 +254,8 @@ export class GenerateSqlUseCase {
         ifNotExistsWhere = `WHERE ${cond}`;
         selectWhere = cond;
       } else {
-        ifNotExistsWhere = `WHERE ${cond}\n            AND ${def.keyColumn} IN (${keyValues})`;
-        selectWhere = `${cond} AND ${def.keyColumn} IN (${keyValues})`;
+        ifNotExistsWhere = `WHERE ${cond}\n            AND ${def.keyColumn} = ${keyValues}`;
+        selectWhere = `${cond} AND ${def.keyColumn} = ${keyValues}`;
       }
     } else {
       // COMPOSITE_KEY: WHERE con OR de (filterColumn = X AND keyColumn = Y)
