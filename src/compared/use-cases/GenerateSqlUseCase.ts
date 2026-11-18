@@ -296,7 +296,7 @@ export class GenerateSqlUseCase {
       lines.push(`    (`);
       lines.push(`        SELECT 1`);
       lines.push(`        FROM ${src} S`);
-      lines.push(`        INNER JOIN dbo.${def.tableName} D ON D.${this.q(identityCol!)} = S.${this.q(identityCol!)}`);
+      lines.push(`        INNER JOIN ${instance.sourcePrefix}.${def.tableName} D ON D.${this.q(identityCol!)} = S.${this.q(identityCol!)}`);
       lines.push(`        WHERE (${whereRows})`);
       lines.push(`          AND NOT (${naturalMatch})`);
       lines.push(`    )`);
