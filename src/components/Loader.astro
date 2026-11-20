@@ -1,6 +1,5 @@
 ---
 
-
 ---
 
 
@@ -11,7 +10,12 @@
   </section>
 
   <script>
-    const loader = new rive.Rive({
+import { Rive } from "@rive-app/canvas";
+
+
+
+    const loader = new Rive({
+
       src: '/rive/Loader.riv',
       canvas: document.getElementById('canvas'),
       autoplay: true,

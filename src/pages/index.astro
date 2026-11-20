@@ -20,7 +20,7 @@ import Loader from '../components/Loader.astro'
  </style>
 
 <div class="preloader">
-	<Loader>   
+	<Loader/>   
 	</div>
 <Layout title="Tools" >
 	
@@ -35,7 +35,7 @@ import Loader from '../components/Loader.astro'
 		<div class="flex items-center justify-center">
 			<div class="grid gap-8 my-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				<!-- cards -->
-				<div class="w-full max-w-xs text-center shadow-[rgba(17,_17,_26,_0.1)_0px_0px_16px]">
+				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
 	
 					<a href="/email-creator">
 						<div
@@ -47,12 +47,24 @@ import Loader from '../components/Loader.astro'
 						</div>
 					</a>
 				</div>
+				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
+	
+					<a href="/email-test">
+						<div
+							class="object-cover object-center w-full h-48 mx-auto rounded-lg ">
+							<div class="py-16 px-4">
+								<h5 class="text-lg font-bold text-black">Email Test</h5>
+								<span class="mt-1 font-medium dark:text-gray-400">Envios Mail de pruebas</span>
+							</div>
+						</div>
+					</a>
+				</div>
 	
 			
 	
 	
-				<div class="w-full max-w-xs text-center shadow-[rgba(17,_17,_26,_0.1)_0px_0px_16px]">
-					<a href="/Email">
+				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
+					<a href="/db-compare">
 						<div
 							class="object-cover object-center w-full h-48 mx-auto rounded-xl">
 							<div class="py-16 px-4">
