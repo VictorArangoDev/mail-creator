@@ -1,12 +1,20 @@
 import type { GenerateScript, PendingChange } from "../domain/entities/PendingChange";
-import type { TableDefinition } from "../domain/config/tableDefinitions"; 
-import { INSTANCES } from "../domain/config/instances"; 
+import type { TableDefinition } from "../domain/config/tableDefinitions";
+import {
+  getEnvironment,
+  getLinkedServerAlias,
+} from "../domain/config/environments";
 
 interface GenerateOptions {
   direction?: 'TEST_TO_PROD' | 'PROD_TO_TEST';
   includeTransaction?: boolean;
   /** Si true (por defecto) cada UPDATE valida que afecte exactamente 1 fila; si no, aborta con THROW. */
   validateRowCount?: boolean;
+  /** Configuración de entornos elegida por el usuario (default: MDEPYD01NEW → PROJECT5X). */
+  environment?: {
+    sourceId: string;
+    targetId: string;
+  };
 }
 
 interface BuildOpts {
@@ -14,46 +22,107 @@ interface BuildOpts {
   validateRowCount: boolean;
 }
 
+/** Estructura interna que los builders usan. Compatible con lo que ya tenías. */
+interface ResolvedInstance {
+  targetName: string;
+  sourceName: string;
+  sourcePrefix: string;
+  targetDb: string;
+  description: string;
+  hasLinkedServer: boolean;
+}
+
+const DEFAULT_ENV = {
+  sourceId: 'MDEPYD01NEW',
+  targetId: 'PROJECT5X',
+};
+
 export class GenerateSqlUseCase {
 
   execute(changes: PendingChange[], options: GenerateOptions = {}): GenerateScript {
-    const { direction = 'TEST_TO_PROD', includeTransaction = true, validateRowCount = true } = options;
+    const {
+      direction = 'TEST_TO_PROD',
+      includeTransaction = true,
+      validateRowCount = true,
+      environment = DEFAULT_ENV,
+    } = options;
+
     const opts: BuildOpts = { direction, validateRowCount };
 
-    const byInstance = new Map<string, Map<string, PendingChange[]>>();
-    for (const change of changes) {
-      const targets = this.resolveInstances(change.definition);
-      for (const instId of targets) {
-        if (!byInstance.has(instId)) byInstance.set(instId, new Map());
-        const tableMap = byInstance.get(instId)!;
-        if (!tableMap.has(change.definition.tableName)) {
-          tableMap.set(change.definition.tableName, []);
-        }
-        tableMap.get(change.definition.tableName)!.push(change);
+    // 1. Resolver entorno origen / destino
+    const sourceEnv = getEnvironment(environment.sourceId);
+    const targetEnv = getEnvironment(environment.targetId);
+
+    if (!sourceEnv || !targetEnv) {
+      throw new Error(
+        `Entorno inválido: source=${environment.sourceId} target=${environment.targetId}`
+      );
+    }
+
+    // 2. Resolver alias del linked server según el destino
+    const linkedServerAlias = getLinkedServerAlias(targetEnv.id);
+    const sourcePrefix = linkedServerAlias
+      ? `${linkedServerAlias}.${sourceEnv.database}.dbo`
+      : '';
+
+    // 2.1 Formatear etiqueta del servidor (con IP si existe)
+    const formatServerLabel = (env: { server: string; ip?: string; database: string }): string => {
+      if (env.ip && env.ip !== env.server) {
+        return `${env.server} (${env.ip}) [${env.database}]`;
       }
+      return `${env.server} [${env.database}]`;
+    };
+
+    // 3. Construir la instancia resuelta (AHORA usando formatServerLabel)
+    const instance: ResolvedInstance = {
+      targetName: formatServerLabel(targetEnv),      // ← CAMBIO
+      sourceName: formatServerLabel(sourceEnv),      // ← CAMBIO
+      sourcePrefix,
+      targetDb: targetEnv.database,
+      description: targetEnv.description,
+      hasLinkedServer: !!linkedServerAlias,
+    };
+    console.log('🔍 [GenerateSql] instance:', {
+      sourceEnv,
+      targetEnv,
+      linkedServerAlias,
+      sourcePrefix,
+      instance,
+    });
+
+
+    // 4. Validar que si hay COMPOSITE_KEY, exista linked server
+    const hasCompositeKeyChanges = changes.some(
+      c => c.definition.updateStrategy === 'COMPOSITE_KEY'
+    );
+    if (hasCompositeKeyChanges && !instance.hasLinkedServer) {
+      throw new Error(
+        `No hay linked server configurado para el destino "${targetEnv.label}". ` +
+        `Las tablas con COMPOSITE_KEY (Template, FileSchemas, etc.) requieren un linked server configurado.`
+      );
     }
 
-    const scripts: string[] = [];
-    let totalUpdates = 0, totalInserts = 0, totalWarnings = 0;
-
-    for (const [instId, tableMap] of byInstance) {
-      const instance = INSTANCES[instId];
-      const result = this.buildInstanceScript(instance, tableMap, opts, includeTransaction);
-      scripts.push(result.script);
-      totalUpdates += result.updates;
-      totalInserts += result.inserts;
-      totalWarnings += result.warnings;
+    // 5. Agrupar por tabla (ya no por instancia, porque ahora hay un único destino)
+    const tableMap = new Map<string, PendingChange[]>();
+    for (const change of changes) {
+      if (!tableMap.has(change.definition.tableName)) {
+        tableMap.set(change.definition.tableName, []);
+      }
+      tableMap.get(change.definition.tableName)!.push(change);
     }
+
+    // 6. Generar el script único
+    const result = this.buildInstanceScript(instance, tableMap, opts, includeTransaction);
 
     return {
-      sql: scripts.join('\n\n\n'),
+      sql: result.script,
       stats: {
-        totalChanges: totalUpdates + totalInserts,
-        updates: totalUpdates,
-        inserts: totalInserts,
-        warnings: totalWarnings,
-        tables: byInstance.size,
-        instances: byInstance.size,
+        totalChanges: result.updates + result.inserts,
+        updates: result.updates,
+        inserts: result.inserts,
+        warnings: result.warnings,
+        tables: tableMap.size,
+        instances: 1,   // ← ahora siempre 1 (un solo destino)
       },
     };
   }
@@ -61,7 +130,7 @@ export class GenerateSqlUseCase {
   // ======================== BUILDERS ========================
 
   private buildInstanceScript(
-    instance: any,
+    instance: ResolvedInstance,
     tableMap: Map<string, PendingChange[]>,
     opts: BuildOpts,
     includeTransaction: boolean
@@ -115,7 +184,7 @@ export class GenerateSqlUseCase {
     };
   }
 
-  private buildHeader(instance: any, totalTables: number, direction: string): string {
+  private buildHeader(instance: ResolvedInstance, totalTables: number, direction: string): string {
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const dst = direction === 'TEST_TO_PROD' ? instance.targetName : instance.sourceName;
     const src = direction === 'TEST_TO_PROD' ? instance.sourceName : instance.targetName;
@@ -124,6 +193,9 @@ export class GenerateSqlUseCase {
       ` * Migración a ${direction === 'TEST_TO_PROD' ? 'Producción' : 'TEST'}`,
       ` * Aplicar en la instancia: ${dst}`,
       ` * Instancia vinculada: ${src}`,
+      instance.hasLinkedServer
+        ? ` * Linked Server: ${instance.sourcePrefix}`
+        : ` * Modo: DIRECT (sin linked server)`,
       ` * Generado: ${now}`,
       ` * Tablas: ${totalTables}`,
       '=========================================================*/',
@@ -151,7 +223,7 @@ export class GenerateSqlUseCase {
 
   private buildContextBlock(
     ctx: { filters: Map<string, any>; customerNit: string | null },
-    instance: any
+    _instance: ResolvedInstance
   ): string {
     const lines: string[] = [];
 
@@ -183,8 +255,6 @@ export class GenerateSqlUseCase {
       lines.push('    END');
     }
 
-
-
     return lines.join('\n');
   }
 
@@ -192,7 +262,7 @@ export class GenerateSqlUseCase {
     index: number,
     def: TableDefinition,
     changes: PendingChange[],
-    instance: any,
+    instance: ResolvedInstance,
     opts: BuildOpts
   ): { block: string; updates: number; inserts: number; warnings: number } {
     const { direction } = opts;
@@ -239,17 +309,10 @@ export class GenerateSqlUseCase {
 
   // ==================== INSERT ====================
 
-  /**
-   * INSERT por fila con NOT EXISTS sobre la llave de emparejamiento.
-   * - SIMPLE:        (filterColumn, keyColumn)
-   * - COMPOSITE_KEY: compositeKeys
-   * Si la tabla inserta su columna identity explícitamente, antes valida que el Id
-   * no exista en destino con OTRA llave natural (colisión de Id entre ambientes).
-   */
   private buildInsertBlock(
     def: TableDefinition,
     inserts: PendingChange[],
-    instance: any,
+    instance: ResolvedInstance,
     direction: string
   ): string {
     if (inserts.length === 0) return '';
@@ -263,12 +326,12 @@ export class GenerateSqlUseCase {
         const row = this.rowOf(change, direction);
         if (!row) return '';
         const cond = keys
-  .map(k =>
-    this.keyValue(def, change, row, k) === null
-      ? `S.${this.q(k)} IS NULL`
-      : `S.${this.q(k)} = ${this.sqlLiteral(this.keyValue(def, change, row, k))}`
-  )
-  .join(' AND ');
+          .map(k =>
+            this.keyValue(def, change, row, k) === null
+              ? `S.${this.q(k)} IS NULL`
+              : `S.${this.q(k)} = ${this.sqlLiteral(this.keyValue(def, change, row, k))}`
+          )
+          .join(' AND ');
         return `(${cond})`;
       })
       .filter(Boolean);
@@ -345,7 +408,7 @@ export class GenerateSqlUseCase {
   private buildUpdatesBlock(
     def: TableDefinition,
     changes: PendingChange[],
-    instance: any,
+    instance: ResolvedInstance,
     opts: BuildOpts
   ): string {
     const { direction, validateRowCount } = opts;
@@ -353,7 +416,7 @@ export class GenerateSqlUseCase {
     const rowCountGuard = (label: string): string =>
       validateRowCount
         ? `    IF @@ROWCOUNT <> 1\n` +
-          `        THROW 50002, 'UPDATE afectó un número inesperado de filas en ${def.tableName} (${label.replace(/'/g, "''")}).', 1;`
+        `        THROW 50002, 'UPDATE afectó un número inesperado de filas en ${def.tableName} (${label.replace(/'/g, "''")}).', 1;`
         : '';
 
     // ---- SIMPLE ----
@@ -404,7 +467,12 @@ export class GenerateSqlUseCase {
         .join(' AND ');
 
       const whereConditions = compositeKeys
-        .map(col => `O.${this.q(col)} = ${this.sqlLiteral(this.keyValue(def, change, row, col))}`)
+        .map(col => {
+          const v = this.keyValue(def, change, row, col);
+          return v === null
+            ? `O.${this.q(col)} IS NULL`
+            : `O.${this.q(col)} = ${this.sqlLiteral(v)}`;
+        })
         .join(' AND ');
 
       const label = compositeKeys.map(c => `${c}=${row[c]}`).join(', ');
@@ -426,13 +494,6 @@ export class GenerateSqlUseCase {
 
   // ==================== HELPERS ====================
 
-  private resolveInstances(def: TableDefinition): string[] {
-    if (def.targetInstance === 'BOTH') return ['PROJECT5X', 'CADCORE'];
-    if (def.targetInstance === 'CADCORE') return ['CADCORE'];
-    return ['PROJECT5X'];
-  }
-
-  /** Columnas que identifican una fila de forma única entre ambientes. */
   private matchKeys(def: TableDefinition): string[] {
     if (def.updateStrategy === 'COMPOSITE_KEY') {
       return def.compositeKeys && def.compositeKeys.length > 0 ? def.compositeKeys : [def.keyColumn];
@@ -445,7 +506,6 @@ export class GenerateSqlUseCase {
     return (row as Record<string, any>) ?? null;
   }
 
-  /** Valor de una columna llave para una fila; falla si no se puede determinar (evita "= NULL"). */
   private keyValue(
     def: TableDefinition,
     change: PendingChange,

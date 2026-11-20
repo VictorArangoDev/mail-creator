@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import template from '/public/template.json';
-import EmailEditor from 'react-email-editor';
+import {EmailEditor} from 'react-email-editor';
 
 const App = (props) => {
   const emailEditorRef = useRef(null);

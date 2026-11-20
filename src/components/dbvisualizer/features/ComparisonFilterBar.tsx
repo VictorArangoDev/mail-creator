@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useContextStore } from '../../../compared/presentation/useContextStore'; 
-import type { ContextLevel } from '../../../compared/domain/config/tableDefinitions';
+import type { ContextLevel } from '../../../compared/domain/config/tableDefinitions'; 
 
 export type TableDefLite = {
   tableName: string;
   displayName: string;
   selectorType: 'CONTEXT' | 'MANUAL';
-  contextLevel?: string;  
+  contextLevel?: string;
   manualPlaceholder?: string;
 };
 
@@ -19,13 +19,17 @@ interface Props {
 
 function resolveContextLevel(table: TableDefLite | null): ContextLevel | null {
   if (!table) return null;
+
+  // 1. Usar el contextLevel si llegó bien desde el server
   if (table.contextLevel && table.contextLevel !== '') {
     return table.contextLevel as ContextLevel;
   }
 
+  // 2. Fallback por nombre (por si la serialización de Astro pierde el campo)
   const name = table.tableName.toLowerCase();
   if (name === 'customers') return 'CUSTOMER';
   if (name === 'settingsbysubproduct') return 'SUBPRODUCT';
+  if (name === 'resourceconfiguration') return 'RESOURCE';
   if ([
     'product', 'subproduct', 'settingsbyproduct', 'resources',
     'rulesbyproduct', 'fileschemas', 'filesbyproduct',
@@ -48,6 +52,7 @@ export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestCon
     }
 
     const level = resolveContextLevel(table);
+
     if (level === 'CUSTOMER') {
       if (!context.customer) return { value: null, missing: 'Customer' };
       return { value: context.customer.nit };
@@ -60,7 +65,11 @@ export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestCon
       if (!context.subProduct) return { value: null, missing: 'SubProduct' };
       return { value: context.subProduct.subProductId };
     }
-    
+    if (level === 'RESOURCE') {
+      if (!context.resource) return { value: null, missing: 'Resource' };
+      return { value: context.resource.resourcesId };
+    }
+
     return { value: null, missing: 'contexto' };
   };
 
@@ -81,7 +90,6 @@ export function ComparisonFilterBar({ tables, onCompare, isLoading, onRequestCon
           value={selectedTable?.tableName || ''}
           onChange={(e) => {
             const t = tables.find(x => x.tableName === e.target.value) || null;
-            //console.log('🔍 Tabla seleccionada:', t, '| contextLevel resuelto:', resolveContextLevel(t));
             setSelectedTable(t);
             setManualValue('');
           }}

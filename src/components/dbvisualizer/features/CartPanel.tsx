@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useCartStore } from '../../../compared/presentation/useCartStore'; 
 import { SqlPreviewModal } from './SqlPreviewModal';
 import type { GenerateScript } from '../../../compared/domain/entities/PendingChange';
-
+import { useEnvironmentStore } from '../../../compared/presentation/hooks/useEnvironmentStore';
 import { useDirectionPreview } from '../../../compared/presentation/hooks/useDirectionPreview'; 
 import { DirectionToggle } from './DirectionToggle';
 
@@ -24,6 +24,8 @@ export function CartPanel() {
     byTable.get(key)!.push(change);
   }
 
+  const { selection } = useEnvironmentStore();
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     setError(null);
@@ -33,6 +35,7 @@ export function CartPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           direction,
+          enviroment: selection,
           changes: changes.map(c => ({
             tableName: c.definition.tableName,
             filterValue: c.filterValue,

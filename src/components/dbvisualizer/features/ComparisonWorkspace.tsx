@@ -7,6 +7,7 @@ import { useCartStore } from '../../../compared/presentation/useCartStore';
 import { useContextStore } from '../../../compared/presentation/useContextStore'; 
 import { TABLE_DEFINITIONS } from '../../../compared/domain/config/tableDefinitions'; 
 import type { ComparisonResult, ComparisonItem } from '../../../compared/domain/entities/ComparisonResult';
+import { useEnvironmentStore } from '../../../compared/presentation/hooks/useEnvironmentStore';
 
 interface Props {
   tables: TableDefLite[];
@@ -28,21 +29,35 @@ export function ComparisonWorkspace({ tables }: Props) {
     setSelectedItems([]);
     setResult(null);
     setAdded(false);
+
+    const currentSelection = useEnvironmentStore.getState().selection;
+
+   
+
     try {
-      const res = await fetch(
-        `/api/compare?table=${encodeURIComponent(params.table)}&filter=${encodeURIComponent(String(params.filter))}`
-      );
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-      setResult(await res.json());
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setIsLoading(false);
+    const url = new URL('/api/compare', window.location.origin);
+    url.searchParams.set('table', params.table);
+    url.searchParams.set('filter', String(params.filter));
+    url.searchParams.set('sourceId', currentSelection.sourceId);
+    url.searchParams.set('targetId', currentSelection.targetId);
+
+   
+
+    const res = await fetch(url.toString());
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `HTTP ${res.status}`);
     }
-  };
+
+    const data: ComparisonResult = await res.json();
+    setResult(data);
+  } catch (e: any) {
+    setError(e.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleAddToCart = () => {
     if (!result || selectedItems.length === 0) return;

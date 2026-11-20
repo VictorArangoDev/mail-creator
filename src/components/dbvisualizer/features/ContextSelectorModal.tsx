@@ -126,7 +126,7 @@ export function ContextSelectorModal({ onClose }: Props) {
                     {subProducts.length === 0 ? 'Sin subproductos' : '-- Ninguno --'}
                   </option>
                   {subProducts.map((s: any) => (
-                    <option key={s.SubProductId} value={s.SubProductId}>{s.Name}</option>
+                    <option key={s.subProductId} value={s.subProductId}>{s.name}</option>
                   ))}
                 </select>
               </div>
