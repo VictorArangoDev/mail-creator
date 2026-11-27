@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
     };
 
   
-    console.log("Payload:" + JSON.stringify(payload))
+
 
     const response = await fetch(MAIL_API_URL, {
       method: "POST",

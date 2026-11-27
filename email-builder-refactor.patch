@@ -1,0 +1,1513 @@
+diff --git a/.env.example b/.env.example
+index d201dd1..ac06e8e 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,3 +1,17 @@
++# Envío de correos de prueba (src/pages/api/send.ts)
++ENDPOINTTEST=https://example:5451/api/Xxxx
+ 
+-ENDPOINT=https//example:5451/api/Xxxx
++# SQL Server
++DB_TEST_SERVER=
++DB_TEST_DATABASE=
++DB_TEST_USER=
++DB_TEST_PASSWORD=
++DB_PROD_SERVER=
++DB_PROD_DATABASE=
++DB_PROD_USER=
++DB_PROD_PASSWORD=
+ 
++# Email builder
++# Donde se guardan las plantillas (tabla dbo.EmailTemplates, ver sql/001_create_email_templates.sql)
++TEMPLATES_DB_ENV=TEST
++PUBLIC_UNLAYER_PROJECT_ID=276321
+diff --git a/README.md b/README.md
+index 2e99aa2..d1f75be 100644
+--- a/README.md
++++ b/README.md
+@@ -10,14 +10,15 @@ Dentro de su proyecto Astro, verá las siguientes carpetas y archivos:
+ ```text
+ /
+ ├── public/
++├── sql/                      # scripts de tablas (001_create_email_templates.sql)
+ ├── src/
+-│   └── pages/
+-│       └── index.astro
+-│         └── email-creator.astro   
+-│    └──Layout/
+-│       └── layout.astro 
+-│    └──components/
+-│           
++│   ├── pages/                # rutas y endpoints delgados (api/templates, api/send, ...)
++│   ├── modules/
++│   │   └── email-builder/    # domain · use-cases · infrastructure · ui
++│   ├── compared/             # DB Promote (domain · use-cases · infrastructure)
++│   ├── components/           # UI de DB Promote y componentes comunes
++│   ├── shared/               # utilidades compartidas (http)
++│   └── layout/
+ └── package.json
+ ```
+ 
+diff --git a/sql/001_create_email_templates.sql b/sql/001_create_email_templates.sql
+new file mode 100644
+index 0000000..ea51dfa
+--- /dev/null
++++ b/sql/001_create_email_templates.sql
+@@ -0,0 +1,18 @@
++-- Tabla para guardar plantillas del email builder.
++-- DesignJson = fuente de verdad (para volver a editar). Html = derivado del diseño.
++-- Cada guardado crea una versión nueva por Name; nunca se sobrescribe.
++
++IF OBJECT_ID('dbo.EmailTemplates', 'U') IS NULL
++BEGIN
++    CREATE TABLE dbo.EmailTemplates (
++        Id         INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_EmailTemplates PRIMARY KEY,
++        Name       NVARCHAR(200)     NOT NULL,
++        Version    INT               NOT NULL,
++        DesignJson NVARCHAR(MAX)     NOT NULL,
++        Html       NVARCHAR(MAX)     NOT NULL,
++        CreatedAt  DATETIME2(0)      NOT NULL CONSTRAINT DF_EmailTemplates_CreatedAt DEFAULT SYSUTCDATETIME(),
++        CONSTRAINT UQ_EmailTemplates_Name_Version UNIQUE (Name, Version),
++        CONSTRAINT CK_EmailTemplates_DesignJson CHECK (ISJSON(DesignJson) = 1)
++    );
++END
++GO
+diff --git a/src/components/email-editor/Email-editor.astro b/src/components/email-editor/Email-editor.astro
+deleted file mode 100644
+index 1bfed3d..0000000
+--- a/src/components/email-editor/Email-editor.astro
++++ /dev/null
+@@ -1,16 +0,0 @@
+----
+----
+-<style>
+-
+-	#editor-container{
+-		width: 100%;
+-		height: 95vh;
+-		overflow: hidden;
+-	}
+-</style>
+-
+-	<main>
+-		<div id="editor-container"></div>
+-
+-	</main>
+-
+diff --git a/src/components/email-editor/Email-editor.jsx b/src/components/email-editor/Email-editor.jsx
+deleted file mode 100644
+index 2117212..0000000
+--- a/src/components/email-editor/Email-editor.jsx
++++ /dev/null
+@@ -1,126 +0,0 @@
+-import React, { useRef } from 'react';
+-import template from '/public/template.json';
+-import EmailEditor from 'react-email-editor';
+-
+-const App = (props) => {
+-  const emailEditorRef = useRef(null);
+-
+-  const exportButton = document.getElementById("export-button");
+-  exportButton.addEventListener("click", async () => {
+-      await emailEditorRef.current.editor.exportHtml(function (data) {
+-          const { html } = data;
+-          const today = new Date().toISOString().slice(0, 10);
+-          const filename = `plantilla-${today}.html`;
+-          const element = document.createElement("a");
+-          const file = new Blob([html], { type: "text/html" }); 
+-          element.href = URL.createObjectURL(file);
+-          element.download = filename;
+-          element.click();
+-      });
+-  });
+-
+-
+-  
+-  //Export HTML Minify 
+-const exportMinifyButton = document.getElementById("export-button-minify");
+-exportMinifyButton.addEventListener("click", async () => {
+-  await emailEditorRef.current.editor.exportHtml(function (data) {
+-    //Limpia los datos y exporta el html en una sola linea 
+-
+-      const { html } = data;
+-      const htmlMinify = html
+-          .replace(/\n/g, '')             
+-          .replace(/\s\s+/g, ' ')          
+-          .trim();       
+-
+-      const today = new Date().toISOString().slice(0, 10);
+-      const filename = `plantilla-${today}-Minify.html`;
+-      const element = document.createElement("a");
+-      const file = new Blob([htmlMinify], { type: "text/html" });
+-      element.href = URL.createObjectURL(file);
+-      element.download = filename;
+-      element.click();
+-  });
+-});
+-
+-
+-
+-// Save JSON 
+-const saveJson = document.getElementById("save-button");
+-saveJson.addEventListener("click", async () => {
+-	await  emailEditorRef.current.editor.saveDesign(function (data) {
+-		const { design } = data;
+-		const today = new Date().toISOString().slice(0, 10);
+-		const filename = `plantilla-${today}.json`;
+-		const element = document.createElement("a");
+-		const file = new Blob([JSON.stringify(data)],{type: "json/plain",});
+-		element.href = URL.createObjectURL(file);
+-		element.download = filename;
+-		element.click();
+-	});
+-});
+-
+-
+-
+-// Cerrar el modal cuando se haga clic en los botones de cerrar
+-document.querySelectorAll('[data-modal-hide="popup-modal"]').forEach(button => {
+-    button.addEventListener("click", () => {
+-        const modal = document.getElementById("popup-modal");
+-        modal.classList.add("hidden");
+-    });
+-});
+-
+-  //Redireccion 
+-  const redirect = document.getElementById("home");
+-
+-redirect.addEventListener("click", async() =>{
+-window.location = "/";
+-});
+-
+-    //IMPORTAR json 
+-    const importJson = document.getElementById("import-button");
+-importJson.addEventListener("click", async () => {
+-  loadDesign();
+-});
+-
+-
+-
+-const loadDesign = () => {
+-    const fileInput = document.createElement('input');
+-    fileInput.type = 'file';
+-    fileInput.accept = '.json';
+-    fileInput.onchange = (e) => {
+-      const file = e.target.files[0];
+-      const reader = new FileReader();
+-      reader.onload = (event) => {
+-        const design = JSON.parse(event.target.result);
+-        emailEditorRef.current.editor.loadDesign(design);
+-      };
+-      reader.Blob(file);
+-    };
+-    fileInput.click();
+-  };
+-  
+-  return (
+-    <div className='w-full h-[80%]' >
+-      
+-      <EmailEditor
+-      
+-       minHeight={900}
+-        options={{
+-
+-          displayMode: "email",
+-          features: {
+-            stockImages: true
+-          },
+-          id: "dy-email-editor"
+-        }}
+-        projectId={276321}
+-        ref={emailEditorRef}
+-      />
+-      
+-    </div>
+-  );
+-};
+-
+-export default App;
+\ No newline at end of file
+diff --git a/src/components/email-editor/Navbar.astro b/src/components/email-editor/Navbar.astro
+deleted file mode 100644
+index 2db2a12..0000000
+--- a/src/components/email-editor/Navbar.astro
++++ /dev/null
+@@ -1,137 +0,0 @@
+----
+-import ExportInIcon from "../../../public/icons/export.svg";
+-import ExportMinify from "../../../public/icons/export-minify.svg";
+-import DarkIcon from "../../../public/icons/dark.svg";
+-import SavetIcon from "../../../public/icons/save.svg";
+-import HomeIcon from "../../../public/icons/home.svg";
+-import ImportIcon from "../../../public/icons/import.svg";
+-
+-const pages = [
+-  {
+-    id: "home",
+-    label: "Home",
+-    text: "Inicio",
+-    iconButton: HomeIcon.src,
+-    name: "",
+-    enabled: true,
+-  },
+-  {
+-    id: "export-button",
+-    label: "Exportar HTML",
+-    text: "ExporHTML",
+-    iconButton: ExportInIcon.src,
+-    name: "",
+-    enabled: true,
+-  },
+-  {
+-    id: "export-button-minify",
+-    label: "Exportar HTML minificado",
+-    text: "ExporHTML",
+-    iconButton: ExportMinify.src,
+-    name: "",
+-    enabled: true,
+-  },
+-  // {
+-  //   id: "darkModeButton",
+-  //   label: "Modo Oscuro",
+-  //   text: "DarkMode",
+-  //   iconButton: DarkIcon.src,
+-  //   name: "textDarkMode",
+-  // },
+-  {
+-    id: "save-button",
+-    label: "Guardar Json",
+-    text: "Save JSON",
+-    iconButton: SavetIcon.src,
+-    name: "",
+-    enabled: true,
+-  },
+-  {
+-    id: "import-button",
+-    label: "Importar Json",
+-    text: "Save JSON",
+-    iconButton: ImportIcon.src,
+-    name: "",
+-    enabled: true,
+-  },
+-];
+----
+-
+-<nav class="bg-white border-gray-20 relative">
+-  <div class="flex flex-wrap items-center justify-between mx-auto p-4">
+-   
+-      <img src="./logo.png" class="h-8" alt="Flowbite Logo" />
+-   
+-    <div
+-      class="flex items-center md:order-2 space-x-1 md:space-x-0 rtl:space-x-reverse"
+-    >
+-      <button
+-        type="button"
+-        data-dropdown-toggle="language-dropdown-menu"
+-        class="inline-flex items-center font-medium justify-center gap-1 px-4 py-2 text-sm text-gray-900 dark:text-gray-900 rounded-lg cursor-pointer"
+-      >
+-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+-        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m-6 3.75 3 3m0 0 3-3m-3 3V1.5m6 9h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-.75" />
+-      </svg>
+-      
+-        Exportar
+-      </button>
+-      <!-- Dropdown -->
+-      <div
+-        class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-950 right-4 top-10 absolute"
+-        id="language-dropdown-menu"
+-      >
+-        <ul class="py-2 font-medium" role="none">
+-          {
+-            pages.map(({ id, label, text, iconButton, name, enabled}, key) => (
+-              <li>
+-                <a
+-                  id={id}
+-                  class={`block px-4 py-2 text-sm text-gray-700 ${enabled ? 'hover:bg-gray-100' : 'cursor-not-allowed opacity-50'} dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-white`}
+-                  role="menuitem"
+-                  aria-disabled={!enabled}
+-                >
+-                  <div class="inline-flex items-center">
+-                    <img
+-                      class="rounded-full me-2 h-5 w-5"
+-                      src={iconButton}
+-                      alt="Logo SVG"
+-                    />
+-
+-                    {label}
+-                  </div>
+-                </a>
+-              </li>
+-            ))
+-          }
+-          
+-        </ul>
+-      </div>
+-      
+-    </div>
+-  </div>
+-</nav>
+-
+-<script is:inline>
+-  // Selecciona el botón y el menú del dropdown
+-  const dropdownToggle = document.querySelector(
+-    '[data-dropdown-toggle="language-dropdown-menu"]'
+-  );
+-  const dropdownMenu = document.getElementById("language-dropdown-menu");
+-
+-  // Agrega el evento de clic al botón
+-  dropdownToggle.addEventListener("click", function () {
+-    // Alterna la visibilidad del menú
+-    dropdownMenu.classList.toggle("hidden");
+-  });
+-
+-  // Cierra el menú si se hace clic fuera de él
+-  document.addEventListener("click", function (event) {
+-    if (
+-      !dropdownToggle.contains(event.target) &&
+-      !dropdownMenu.contains(event.target)
+-    ) {
+-      dropdownMenu.classList.add("hidden");
+-    }
+-  });
+-</script>
+diff --git a/src/env.d.ts b/src/env.d.ts
+index 9090504..85e7acb 100644
+--- a/src/env.d.ts
++++ b/src/env.d.ts
+@@ -2,9 +2,24 @@
+ /// <reference types="astro/client" />
+ 
+ interface ImportMetaEnv {
+-  readonly RESEND_API_KEY: string;
+-  readonly RESEND_FROM_EMAIL?: string;
+-  readonly RESEND_INSECURE_TLS?: string;
++  // Bases de datos (SQL Server)
++  readonly DB_TEST_SERVER: string;
++  readonly DB_TEST_DATABASE: string;
++  readonly DB_TEST_USER: string;
++  readonly DB_TEST_PASSWORD: string;
++  readonly DB_PROD_SERVER: string;
++  readonly DB_PROD_DATABASE: string;
++  readonly DB_PROD_USER: string;
++  readonly DB_PROD_PASSWORD: string;
++
++  // Envío de correos de prueba
++  readonly ENDPOINTTEST: string;
++
++  // Email builder
++  /** Entorno donde se guardan las plantillas: TEST (por defecto) o PROD. */
++  readonly TEMPLATES_DB_ENV?: 'TEST' | 'PROD';
++  /** Id del proyecto de Unlayer. Si falta se usa el actual. */
++  readonly PUBLIC_UNLAYER_PROJECT_ID?: string;
+ }
+ 
+ interface ImportMeta {
+diff --git a/src/modules/email-builder/composition.ts b/src/modules/email-builder/composition.ts
+new file mode 100644
+index 0000000..e75dfe6
+--- /dev/null
++++ b/src/modules/email-builder/composition.ts
+@@ -0,0 +1,18 @@
++import type { Enviroment } from '../../compared/domain/entities/TableConfig';
++import { SqlServerTemplateRepository } from './infrastructure/SqlServerTemplateRepository';
++import { SaveTemplateUseCase } from './use-cases/SaveTemplateUseCase';
++import { GetTemplateUseCase } from './use-cases/GetTemplateUseCase';
++import { ListTemplatesUseCase } from './use-cases/ListTemplatesUseCase';
++
++/** Entorno donde viven las plantillas. TEST por defecto; se cambia con TEMPLATES_DB_ENV=PROD. */
++const templatesEnv: Enviroment = import.meta.env.TEMPLATES_DB_ENV === 'PROD' ? 'PROD' : 'TEST';
++
++/** Único lugar donde se conectan los casos de uso con la implementación concreta. */
++export const createTemplateUseCases = () => {
++  const repository = new SqlServerTemplateRepository(templatesEnv);
++  return {
++    save: new SaveTemplateUseCase(repository),
++    get: new GetTemplateUseCase(repository),
++    list: new ListTemplatesUseCase(repository),
++  };
++};
+diff --git a/src/modules/email-builder/domain/entities/Template.ts b/src/modules/email-builder/domain/entities/Template.ts
+new file mode 100644
+index 0000000..669b99b
+--- /dev/null
++++ b/src/modules/email-builder/domain/entities/Template.ts
+@@ -0,0 +1,23 @@
++/** Diseño JSON del editor (Unlayer). Es la fuente de verdad para volver a editar. */
++export type TemplateDesign = Record<string, unknown>;
++
++/** Datos mínimos para crear una versión nueva de una plantilla. */
++export interface NewTemplate {
++  name: string;
++  design: TemplateDesign;
++  /** HTML ya renderizado a partir del diseño (derivado, no se edita a mano). */
++  html: string;
++}
++
++/** Metadatos de una versión guardada (sin el contenido pesado). */
++export interface TemplateSummary {
++  id: number;
++  name: string;
++  version: number;
++  createdAt: string;
++}
++
++export interface Template extends TemplateSummary {
++  design: TemplateDesign;
++  html: string;
++}
+diff --git a/src/modules/email-builder/domain/errors.ts b/src/modules/email-builder/domain/errors.ts
+new file mode 100644
+index 0000000..3b2b1b6
+--- /dev/null
++++ b/src/modules/email-builder/domain/errors.ts
+@@ -0,0 +1,13 @@
++export class TemplateValidationError extends Error {
++  constructor(message: string) {
++    super(message);
++    this.name = 'TemplateValidationError';
++  }
++}
++
++export class TemplateNotFoundError extends Error {
++  constructor(id: number) {
++    super(`No existe la plantilla con id ${id}`);
++    this.name = 'TemplateNotFoundError';
++  }
++}
+diff --git a/src/modules/email-builder/domain/ports/ITemplateRepository.ts b/src/modules/email-builder/domain/ports/ITemplateRepository.ts
+new file mode 100644
+index 0000000..2aa5fe6
+--- /dev/null
++++ b/src/modules/email-builder/domain/ports/ITemplateRepository.ts
+@@ -0,0 +1,15 @@
++import type { NewTemplate, Template, TemplateSummary } from '../entities/Template';
++
++export interface ITemplateRepository {
++  /**
++   * Guarda una versión nueva. Si ya existe una plantilla con el mismo nombre,
++   * la versión es la siguiente (v1, v2, v3...). Nunca sobrescribe versiones anteriores.
++   */
++  save(template: NewTemplate): Promise<TemplateSummary>;
++
++  /** Devuelve una versión completa (diseño + HTML) o null si no existe. */
++  getById(id: number): Promise<Template | null>;
++
++  /** Lista versiones sin contenido, de la más reciente a la más antigua. */
++  list(name?: string): Promise<TemplateSummary[]>;
++}
+diff --git a/src/modules/email-builder/http.ts b/src/modules/email-builder/http.ts
+new file mode 100644
+index 0000000..6cadbad
+--- /dev/null
++++ b/src/modules/email-builder/http.ts
+@@ -0,0 +1,11 @@
++import { json } from '../../shared/http/response';
++import { TemplateNotFoundError, TemplateValidationError } from './domain/errors';
++
++/** Traduce errores del módulo a respuestas HTTP sin filtrar detalles internos de la BD. */
++export const templateErrorResponse = (error: unknown): Response => {
++  if (error instanceof TemplateValidationError) return json({ error: error.message }, 400);
++  if (error instanceof TemplateNotFoundError) return json({ error: error.message }, 404);
++
++  console.error('[templates]', error);
++  return json({ error: 'No se pudo completar la operación con las plantillas' }, 500);
++};
+diff --git a/src/modules/email-builder/infrastructure/SqlServerTemplateRepository.ts b/src/modules/email-builder/infrastructure/SqlServerTemplateRepository.ts
+new file mode 100644
+index 0000000..db77d17
+--- /dev/null
++++ b/src/modules/email-builder/infrastructure/SqlServerTemplateRepository.ts
+@@ -0,0 +1,92 @@
++import sql from 'mssql';
++import type { ITemplateRepository } from '../domain/ports/ITemplateRepository';
++import type { NewTemplate, Template, TemplateSummary } from '../domain/entities/Template';
++import type { Enviroment } from '../../../compared/domain/entities/TableConfig';
++import { getConnectionPool } from '../../../compared/infrastructure/database/sqlServerConnection';
++
++const toIso = (value: Date | string): string => new Date(value).toISOString();
++
++interface SummaryRow {
++  Id: number;
++  Name: string;
++  Version: number;
++  CreatedAt: Date;
++}
++
++const toSummary = (row: SummaryRow): TemplateSummary => ({
++  id: row.Id,
++  name: row.Name,
++  version: row.Version,
++  createdAt: toIso(row.CreatedAt),
++});
++
++export class SqlServerTemplateRepository implements ITemplateRepository {
++  constructor(private readonly env: Enviroment = 'TEST') {}
++
++  async save(template: NewTemplate): Promise<TemplateSummary> {
++    const pool = await getConnectionPool(this.env);
++    const transaction = new sql.Transaction(pool);
++    await transaction.begin();
++
++    try {
++      // UPDLOCK + HOLDLOCK evita que dos guardados simultáneos calculen la misma versión.
++      const result = await new sql.Request(transaction)
++        .input('name', sql.NVarChar(200), template.name)
++        .input('design', sql.NVarChar(sql.MAX), JSON.stringify(template.design))
++        .input('html', sql.NVarChar(sql.MAX), template.html)
++        .query<SummaryRow>(`
++          DECLARE @version INT = (
++            SELECT ISNULL(MAX(Version), 0) + 1
++            FROM dbo.EmailTemplates WITH (UPDLOCK, HOLDLOCK)
++            WHERE Name = @name
++          );
++
++          INSERT INTO dbo.EmailTemplates (Name, Version, DesignJson, Html)
++          OUTPUT INSERTED.Id, INSERTED.Name, INSERTED.Version, INSERTED.CreatedAt
++          VALUES (@name, @version, @design, @html);
++        `);
++
++      await transaction.commit();
++      return toSummary(result.recordset[0]);
++    } catch (error) {
++      await transaction.rollback();
++      throw error;
++    }
++  }
++
++  async getById(id: number): Promise<Template | null> {
++    const pool = await getConnectionPool(this.env);
++    const result = await pool
++      .request()
++      .input('id', sql.Int, id)
++      .query<SummaryRow & { DesignJson: string; Html: string }>(`
++        SELECT Id, Name, Version, CreatedAt, DesignJson, Html
++        FROM dbo.EmailTemplates
++        WHERE Id = @id
++      `);
++
++    const row = result.recordset[0];
++    if (!row) return null;
++
++    return {
++      ...toSummary(row),
++      design: JSON.parse(row.DesignJson),
++      html: row.Html,
++    };
++  }
++
++  async list(name?: string): Promise<TemplateSummary[]> {
++    const pool = await getConnectionPool(this.env);
++    const result = await pool
++      .request()
++      .input('name', sql.NVarChar(200), name ?? null)
++      .query<SummaryRow>(`
++        SELECT TOP (200) Id, Name, Version, CreatedAt
++        FROM dbo.EmailTemplates
++        WHERE (@name IS NULL OR Name = @name)
++        ORDER BY CreatedAt DESC, Id DESC
++      `);
++
++    return result.recordset.map(toSummary);
++  }
++}
+diff --git a/src/modules/email-builder/ui/EmailBuilder.tsx b/src/modules/email-builder/ui/EmailBuilder.tsx
+new file mode 100644
+index 0000000..1d8a26d
+--- /dev/null
++++ b/src/modules/email-builder/ui/EmailBuilder.tsx
+@@ -0,0 +1,163 @@
++import { useCallback, useEffect, useRef, useState, type ElementRef } from 'react';
++import EmailEditor from 'react-email-editor';
++import type { TemplateDesign, TemplateSummary } from '../domain/entities/Template';
++import { Toolbar } from './Toolbar';
++import { SaveTemplateDialog } from './SaveTemplateDialog';
++import { OpenTemplateDialog } from './OpenTemplateDialog';
++import { templatesApi } from './templatesApi';
++import { downloadFile, pickTextFile, todayStamp } from './lib/files';
++import { minifyHtml } from './lib/minifyHtml';
++import { exportHtml, saveDesign, type UnlayerEditor } from './unlayer';
++
++const UNLAYER_PROJECT_ID = Number(import.meta.env.PUBLIC_UNLAYER_PROJECT_ID ?? 276321);
++
++type Notice = { type: 'success' | 'error'; text: string };
++type Dialog = 'save' | 'open' | null;
++
++export default function EmailBuilder() {
++  const editorRef = useRef<ElementRef<typeof EmailEditor>>(null);
++  const [ready, setReady] = useState(false);
++  const [dialog, setDialog] = useState<Dialog>(null);
++  const [saving, setSaving] = useState(false);
++  const [notice, setNotice] = useState<Notice | null>(null);
++  /** Plantilla abierta desde la BD: sirve para sugerir guardar una versión nueva. */
++  const [currentName, setCurrentName] = useState<string | null>(null);
++
++  useEffect(() => {
++    if (!notice) return;
++    const timer = setTimeout(() => setNotice(null), 4000);
++    return () => clearTimeout(timer);
++  }, [notice]);
++
++  const getEditor = useCallback((): UnlayerEditor => {
++    const editor = editorRef.current?.editor as unknown as UnlayerEditor | undefined;
++    if (!editor) throw new Error('El editor todavía se está cargando');
++    return editor;
++  }, []);
++
++  /** Ejecuta una acción y muestra el error en pantalla en vez de dejarlo en la consola. */
++  const run = useCallback(async (action: () => Promise<void>) => {
++    try {
++      await action();
++    } catch (error) {
++      setNotice({ type: 'error', text: error instanceof Error ? error.message : 'Ocurrió un error inesperado' });
++    }
++  }, []);
++
++  const handleExportHtml = () =>
++    run(async () => {
++      const { html } = await exportHtml(getEditor());
++      downloadFile(`plantilla-${todayStamp()}.html`, html, 'text/html');
++    });
++
++  const handleExportMinified = () =>
++    run(async () => {
++      const { html } = await exportHtml(getEditor());
++      downloadFile(`plantilla-${todayStamp()}-Minify.html`, minifyHtml(html), 'text/html');
++    });
++
++  const handleSaveJson = () =>
++    run(async () => {
++      const design = await saveDesign(getEditor());
++      downloadFile(`plantilla-${todayStamp()}.json`, JSON.stringify(design), 'application/json');
++    });
++
++  const handleImportJson = () =>
++    run(async () => {
++      const text = await pickTextFile('.json');
++      if (text === null) return;
++
++      let parsed: unknown;
++      try {
++        parsed = JSON.parse(text);
++      } catch {
++        throw new Error('El archivo no es un JSON válido');
++      }
++
++      const candidate = (parsed as { design?: unknown })?.design ?? parsed;
++      if (typeof candidate !== 'object' || candidate === null || !('body' in candidate)) {
++        throw new Error('El JSON no corresponde a un diseño del editor');
++      }
++
++      getEditor().loadDesign(candidate as TemplateDesign);
++      setCurrentName(null);
++      setNotice({ type: 'success', text: 'JSON importado' });
++    });
++
++  const handleSaveTemplate = (name: string) =>
++    run(async () => {
++      setSaving(true);
++      try {
++        // El HTML solo lo puede generar el editor, así que viaja junto al diseño en la misma petición.
++        const { design, html } = await exportHtml(getEditor());
++        const saved = await templatesApi.save({ name, design, html });
++        setCurrentName(saved.name);
++        setDialog(null);
++        setNotice({ type: 'success', text: `Plantilla guardada: ${saved.name} v${saved.version}` });
++      } finally {
++        setSaving(false);
++      }
++    });
++
++  const handleOpenTemplate = (summary: TemplateSummary) =>
++    run(async () => {
++      const template = await templatesApi.get(summary.id);
++      getEditor().loadDesign(template.design);
++      setCurrentName(template.name);
++      setDialog(null);
++      setNotice({ type: 'success', text: `Plantilla abierta: ${template.name} v${template.version}` });
++    });
++
++  return (
++    <div className="flex h-screen flex-col">
++      <Toolbar
++        disabled={!ready}
++        onSaveTemplate={() => setDialog('save')}
++        onOpenTemplate={() => setDialog('open')}
++        onExportHtml={handleExportHtml}
++        onExportMinified={handleExportMinified}
++        onSaveJson={handleSaveJson}
++        onImportJson={handleImportJson}
++      />
++
++      <div className="min-h-0 flex-1">
++        <EmailEditor
++          ref={editorRef}
++          minHeight="100%"
++          style={{ height: '100%' }}
++          projectId={UNLAYER_PROJECT_ID}
++          onReady={() => setReady(true)}
++          options={{
++            displayMode: 'email',
++            features: { stockImages: true },
++            id: 'dy-email-editor',
++          }}
++        />
++      </div>
++
++      <SaveTemplateDialog
++        open={dialog === 'save'}
++        saving={saving}
++        currentName={currentName}
++        onSave={handleSaveTemplate}
++        onClose={() => setDialog(null)}
++      />
++      <OpenTemplateDialog
++        open={dialog === 'open'}
++        onOpenTemplate={handleOpenTemplate}
++        onClose={() => setDialog(null)}
++      />
++
++      {notice && (
++        <div
++          role="status"
++          className={`fixed bottom-4 right-4 z-50 max-w-sm rounded-lg px-4 py-3 text-sm text-white shadow-lg ${
++            notice.type === 'success' ? 'bg-slate-900' : 'bg-red-600'
++          }`}
++        >
++          {notice.text}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/modules/email-builder/ui/OpenTemplateDialog.tsx b/src/modules/email-builder/ui/OpenTemplateDialog.tsx
+new file mode 100644
+index 0000000..18407e7
+--- /dev/null
++++ b/src/modules/email-builder/ui/OpenTemplateDialog.tsx
+@@ -0,0 +1,92 @@
++import { useEffect, useState } from 'react';
++import type { TemplateSummary } from '../domain/entities/Template';
++import { templatesApi } from './templatesApi';
++
++interface OpenTemplateDialogProps {
++  open: boolean;
++  onOpenTemplate: (template: TemplateSummary) => void;
++  onClose: () => void;
++}
++
++const formatDate = (iso: string) =>
++  new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
++
++export function OpenTemplateDialog({ open, onOpenTemplate, onClose }: OpenTemplateDialogProps) {
++  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
++  const [loading, setLoading] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++
++  useEffect(() => {
++    if (!open) return;
++    let cancelled = false;
++    setLoading(true);
++    setError(null);
++
++    templatesApi
++      .list()
++      .then((items) => !cancelled && setTemplates(items))
++      .catch((err: Error) => !cancelled && setError(err.message))
++      .finally(() => !cancelled && setLoading(false));
++
++    return () => {
++      cancelled = true;
++    };
++  }, [open]);
++
++  if (!open) return null;
++
++  return (
++    <div
++      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4"
++      onKeyDown={(event) => event.key === 'Escape' && onClose()}
++    >
++      <div
++        role="dialog"
++        aria-modal="true"
++        aria-labelledby="open-template-title"
++        className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-xl bg-white p-6 shadow-xl"
++      >
++        <h2 id="open-template-title" className="text-lg font-semibold text-slate-900">
++          Abrir plantilla
++        </h2>
++
++        <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
++          {loading && <p className="text-sm text-slate-500">Cargando plantillas…</p>}
++          {error && <p className="text-sm text-red-600">{error}</p>}
++          {!loading && !error && templates.length === 0 && (
++            <p className="text-sm text-slate-500">
++              Todavía no hay plantillas guardadas. Usa «Guardar plantilla» para crear la primera.
++            </p>
++          )}
++
++          <ul className="divide-y divide-slate-100">
++            {templates.map((template) => (
++              <li key={template.id}>
++                <button
++                  type="button"
++                  onClick={() => onOpenTemplate(template)}
++                  className="flex w-full items-center justify-between gap-4 px-2 py-3 text-left hover:bg-slate-50"
++                >
++                  <span className="truncate text-sm font-medium text-slate-900">
++                    {template.name} <span className="font-normal text-slate-500">v{template.version}</span>
++                  </span>
++                  <span className="shrink-0 text-xs text-slate-500">{formatDate(template.createdAt)}</span>
++                </button>
++              </li>
++            ))}
++          </ul>
++        </div>
++
++        <div className="mt-4 flex justify-end">
++          <button
++            type="button"
++            onClick={onClose}
++            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
++          >
++            Cerrar
++          </button>
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/src/modules/email-builder/ui/SaveTemplateDialog.tsx b/src/modules/email-builder/ui/SaveTemplateDialog.tsx
+new file mode 100644
+index 0000000..4236479
+--- /dev/null
++++ b/src/modules/email-builder/ui/SaveTemplateDialog.tsx
+@@ -0,0 +1,84 @@
++import { useEffect, useRef, useState, type FormEvent } from 'react';
++
++interface SaveTemplateDialogProps {
++  open: boolean;
++  saving: boolean;
++  /** Nombre de la plantilla abierta desde la base de datos, si hay una. */
++  currentName: string | null;
++  onSave: (name: string) => void;
++  onClose: () => void;
++}
++
++export function SaveTemplateDialog({ open, saving, currentName, onSave, onClose }: SaveTemplateDialogProps) {
++  const [name, setName] = useState('');
++  const inputRef = useRef<HTMLInputElement>(null);
++
++  useEffect(() => {
++    if (!open) return;
++    setName(currentName ?? '');
++    inputRef.current?.focus();
++  }, [open, currentName]);
++
++  if (!open) return null;
++
++  const trimmed = name.trim();
++  const isNewVersion = currentName !== null && trimmed === currentName;
++
++  const submit = (event: FormEvent) => {
++    event.preventDefault();
++    if (trimmed && !saving) onSave(trimmed);
++  };
++
++  return (
++    <div
++      className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4"
++      onKeyDown={(event) => event.key === 'Escape' && onClose()}
++    >
++      <form
++        onSubmit={submit}
++        role="dialog"
++        aria-modal="true"
++        aria-labelledby="save-template-title"
++        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
++      >
++        <h2 id="save-template-title" className="text-lg font-semibold text-slate-900">
++          Guardar plantilla
++        </h2>
++
++        <label htmlFor="template-name" className="mt-4 block text-sm font-medium text-slate-700">
++          Nombre de la plantilla
++        </label>
++        <input
++          id="template-name"
++          ref={inputRef}
++          value={name}
++          maxLength={200}
++          onChange={(event) => setName(event.target.value)}
++          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
++        />
++        <p className="mt-2 text-sm text-slate-500">
++          {isNewVersion
++            ? 'Se guardará como una versión nueva. Las anteriores se conservan.'
++            : 'Si ya existe una plantilla con este nombre, se guardará como versión nueva.'}
++        </p>
++
++        <div className="mt-6 flex justify-end gap-2">
++          <button
++            type="button"
++            onClick={onClose}
++            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
++          >
++            Cancelar
++          </button>
++          <button
++            type="submit"
++            disabled={!trimmed || saving}
++            className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
++          >
++            {saving ? 'Guardando…' : 'Guardar plantilla'}
++          </button>
++        </div>
++      </form>
++    </div>
++  );
++}
+diff --git a/src/modules/email-builder/ui/Toolbar.tsx b/src/modules/email-builder/ui/Toolbar.tsx
+new file mode 100644
+index 0000000..8749494
+--- /dev/null
++++ b/src/modules/email-builder/ui/Toolbar.tsx
+@@ -0,0 +1,119 @@
++import { useEffect, useRef, useState } from 'react';
++
++interface ToolbarProps {
++  disabled: boolean;
++  onSaveTemplate: () => void;
++  onOpenTemplate: () => void;
++  onExportHtml: () => void;
++  onExportMinified: () => void;
++  onSaveJson: () => void;
++  onImportJson: () => void;
++}
++
++const menuItemClass =
++  'flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50';
++
++export function Toolbar(props: ToolbarProps) {
++  const { disabled } = props;
++  const [menuOpen, setMenuOpen] = useState(false);
++  const menuRef = useRef<HTMLDivElement>(null);
++
++  useEffect(() => {
++    if (!menuOpen) return;
++    const closeOnOutsideClick = (event: MouseEvent) => {
++      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
++    };
++    const closeOnEscape = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') setMenuOpen(false);
++    };
++    document.addEventListener('mousedown', closeOnOutsideClick);
++    document.addEventListener('keydown', closeOnEscape);
++    return () => {
++      document.removeEventListener('mousedown', closeOnOutsideClick);
++      document.removeEventListener('keydown', closeOnEscape);
++    };
++  }, [menuOpen]);
++
++  const runFromMenu = (action: () => void) => () => {
++    setMenuOpen(false);
++    action();
++  };
++
++  return (
++    <nav className="relative z-20 flex items-center justify-between bg-white px-4 py-3">
++      <img src="/logo.png" className="h-8" alt="Cadena" />
++
++      <div className="flex items-center gap-2">
++        <a
++          href="/"
++          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
++        >
++          <img src="/icons/home.svg" alt="" className="h-5 w-5" />
++          Inicio
++        </a>
++
++        <button
++          type="button"
++          disabled={disabled}
++          onClick={props.onOpenTemplate}
++          className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
++        >
++          Abrir plantilla
++        </button>
++
++        <button
++          type="button"
++          disabled={disabled}
++          onClick={props.onSaveTemplate}
++          className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
++        >
++          Guardar plantilla
++        </button>
++
++        <div className="relative" ref={menuRef}>
++          <button
++            type="button"
++            aria-haspopup="menu"
++            aria-expanded={menuOpen}
++            onClick={() => setMenuOpen((open) => !open)}
++            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
++          >
++            Exportar
++          </button>
++
++          {menuOpen && (
++            <ul
++              role="menu"
++              className="absolute right-0 top-full z-30 mt-2 w-60 overflow-hidden rounded-lg bg-white py-2 shadow-lg ring-1 ring-slate-200"
++            >
++              <li role="none">
++                <button role="menuitem" disabled={disabled} className={menuItemClass} onClick={runFromMenu(props.onExportHtml)}>
++                  <img src="/icons/export.svg" alt="" className="h-5 w-5" />
++                  Exportar HTML
++                </button>
++              </li>
++              <li role="none">
++                <button role="menuitem" disabled={disabled} className={menuItemClass} onClick={runFromMenu(props.onExportMinified)}>
++                  <img src="/icons/export-minify.svg" alt="" className="h-5 w-5" />
++                  Exportar HTML minificado
++                </button>
++              </li>
++              <li role="none">
++                <button role="menuitem" disabled={disabled} className={menuItemClass} onClick={runFromMenu(props.onSaveJson)}>
++                  <img src="/icons/save.svg" alt="" className="h-5 w-5" />
++                  Guardar JSON
++                </button>
++              </li>
++              <li role="none">
++                <button role="menuitem" disabled={disabled} className={menuItemClass} onClick={runFromMenu(props.onImportJson)}>
++                  <img src="/icons/import.svg" alt="" className="h-5 w-5" />
++                  Importar JSON
++                </button>
++              </li>
++            </ul>
++          )}
++        </div>
++      </div>
++    </nav>
++  );
++}
+diff --git a/src/modules/email-builder/ui/lib/files.ts b/src/modules/email-builder/ui/lib/files.ts
+new file mode 100644
+index 0000000..c3b2c15
+--- /dev/null
++++ b/src/modules/email-builder/ui/lib/files.ts
+@@ -0,0 +1,28 @@
++export const todayStamp = (): string => new Date().toISOString().slice(0, 10);
++
++export const downloadFile = (filename: string, content: string, mimeType: string): void => {
++  const url = URL.createObjectURL(new Blob([content], { type: mimeType }));
++  const link = document.createElement('a');
++  link.href = url;
++  link.download = filename;
++  link.click();
++  URL.revokeObjectURL(url);
++};
++
++/** Abre el selector de archivos y devuelve el texto del archivo elegido (null si se cancela). */
++export const pickTextFile = (accept: string): Promise<string | null> =>
++  new Promise((resolve, reject) => {
++    const input = document.createElement('input');
++    input.type = 'file';
++    input.accept = accept;
++    input.onchange = () => {
++      const file = input.files?.[0];
++      if (!file) return resolve(null);
++
++      const reader = new FileReader();
++      reader.onload = () => resolve(String(reader.result));
++      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
++      reader.readAsText(file);
++    };
++    input.click();
++  });
+diff --git a/src/modules/email-builder/ui/lib/minifyHtml.ts b/src/modules/email-builder/ui/lib/minifyHtml.ts
+new file mode 100644
+index 0000000..9cb3475
+--- /dev/null
++++ b/src/modules/email-builder/ui/lib/minifyHtml.ts
+@@ -0,0 +1,6 @@
++/** Deja el HTML en una sola línea (mismo comportamiento que tenía el botón de exportar minificado). */
++export const minifyHtml = (html: string): string =>
++  html
++    .replace(/\r?\n/g, '')
++    .replace(/\s\s+/g, ' ')
++    .trim();
+diff --git a/src/modules/email-builder/ui/templatesApi.ts b/src/modules/email-builder/ui/templatesApi.ts
+new file mode 100644
+index 0000000..e23d413
+--- /dev/null
++++ b/src/modules/email-builder/ui/templatesApi.ts
+@@ -0,0 +1,22 @@
++import type { Template, TemplateDesign, TemplateSummary } from '../domain/entities/Template';
++
++const request = async <T>(input: string, init?: RequestInit): Promise<T> => {
++  const response = await fetch(input, init);
++  const data = await response.json().catch(() => ({}));
++  if (!response.ok) throw new Error(data.error ?? 'No se pudo completar la operación');
++  return data as T;
++};
++
++export const templatesApi = {
++  list: async (): Promise<TemplateSummary[]> =>
++    (await request<{ templates: TemplateSummary[] }>('/api/templates')).templates,
++
++  get: (id: number): Promise<Template> => request<Template>(`/api/templates/${id}`),
++
++  save: (payload: { name: string; design: TemplateDesign; html: string }): Promise<TemplateSummary> =>
++    request<TemplateSummary>('/api/templates', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(payload),
++    }),
++};
+diff --git a/src/modules/email-builder/ui/unlayer.ts b/src/modules/email-builder/ui/unlayer.ts
+new file mode 100644
+index 0000000..86ba72c
+--- /dev/null
++++ b/src/modules/email-builder/ui/unlayer.ts
+@@ -0,0 +1,14 @@
++import type { TemplateDesign } from '../domain/entities/Template';
++
++/** Parte de la API del editor de Unlayer que usa la app. */
++export interface UnlayerEditor {
++  exportHtml(callback: (data: { design: TemplateDesign; html: string }) => void): void;
++  saveDesign(callback: (design: TemplateDesign) => void): void;
++  loadDesign(design: TemplateDesign): void;
++}
++
++export const exportHtml = (editor: UnlayerEditor) =>
++  new Promise<{ design: TemplateDesign; html: string }>((resolve) => editor.exportHtml(resolve));
++
++export const saveDesign = (editor: UnlayerEditor) =>
++  new Promise<TemplateDesign>((resolve) => editor.saveDesign(resolve));
+diff --git a/src/modules/email-builder/use-cases/GetTemplateUseCase.ts b/src/modules/email-builder/use-cases/GetTemplateUseCase.ts
+new file mode 100644
+index 0000000..71e21de
+--- /dev/null
++++ b/src/modules/email-builder/use-cases/GetTemplateUseCase.ts
+@@ -0,0 +1,18 @@
++import type { ITemplateRepository } from '../domain/ports/ITemplateRepository';
++import type { Template } from '../domain/entities/Template';
++import { TemplateNotFoundError, TemplateValidationError } from '../domain/errors';
++
++export class GetTemplateUseCase {
++  constructor(private readonly repository: ITemplateRepository) {}
++
++  async execute(rawId: unknown): Promise<Template> {
++    const id = Number(rawId);
++    if (!Number.isInteger(id) || id <= 0) {
++      throw new TemplateValidationError('El id de la plantilla no es válido');
++    }
++
++    const template = await this.repository.getById(id);
++    if (!template) throw new TemplateNotFoundError(id);
++    return template;
++  }
++}
+diff --git a/src/modules/email-builder/use-cases/ListTemplatesUseCase.ts b/src/modules/email-builder/use-cases/ListTemplatesUseCase.ts
+new file mode 100644
+index 0000000..5812f46
+--- /dev/null
++++ b/src/modules/email-builder/use-cases/ListTemplatesUseCase.ts
+@@ -0,0 +1,11 @@
++import type { ITemplateRepository } from '../domain/ports/ITemplateRepository';
++import type { TemplateSummary } from '../domain/entities/Template';
++
++export class ListTemplatesUseCase {
++  constructor(private readonly repository: ITemplateRepository) {}
++
++  execute(name?: string | null): Promise<TemplateSummary[]> {
++    const filter = name?.trim();
++    return this.repository.list(filter ? filter : undefined);
++  }
++}
+diff --git a/src/modules/email-builder/use-cases/SaveTemplateUseCase.test.ts b/src/modules/email-builder/use-cases/SaveTemplateUseCase.test.ts
+new file mode 100644
+index 0000000..3f044cf
+--- /dev/null
++++ b/src/modules/email-builder/use-cases/SaveTemplateUseCase.test.ts
+@@ -0,0 +1,61 @@
++import { describe, expect, it } from 'vitest';
++import { SaveTemplateUseCase } from './SaveTemplateUseCase';
++import { TemplateValidationError } from '../domain/errors';
++import type { ITemplateRepository } from '../domain/ports/ITemplateRepository';
++import type { NewTemplate, TemplateSummary } from '../domain/entities/Template';
++
++class InMemoryRepository implements ITemplateRepository {
++  saved: NewTemplate[] = [];
++
++  async save(template: NewTemplate): Promise<TemplateSummary> {
++    this.saved.push(template);
++    const version = this.saved.filter((t) => t.name === template.name).length;
++    return { id: this.saved.length, name: template.name, version, createdAt: new Date().toISOString() };
++  }
++  async getById() {
++    return null;
++  }
++  async list() {
++    return [];
++  }
++}
++
++const validInput = {
++  name: '  Bienvenida  ',
++  design: { body: { rows: [] } },
++  html: '<html><body>Hola</body></html>',
++};
++
++describe('SaveTemplateUseCase', () => {
++  it('guarda diseño y HTML con el nombre sin espacios sobrantes', async () => {
++    const repo = new InMemoryRepository();
++    const result = await new SaveTemplateUseCase(repo).execute(validInput);
++
++    expect(result.name).toBe('Bienvenida');
++    expect(repo.saved[0].design).toEqual(validInput.design);
++    expect(repo.saved[0].html).toBe(validInput.html);
++  });
++
++  it('crea una versión nueva al guardar el mismo nombre otra vez', async () => {
++    const useCase = new SaveTemplateUseCase(new InMemoryRepository());
++    await useCase.execute(validInput);
++    const second = await useCase.execute(validInput);
++
++    expect(second.version).toBe(2);
++  });
++
++  it.each([
++    ['nombre vacío', { ...validInput, name: '   ' }],
++    ['nombre muy largo', { ...validInput, name: 'x'.repeat(201) }],
++    ['diseño sin body', { ...validInput, design: { foo: 1 } }],
++    ['diseño que no es objeto', { ...validInput, design: 'texto' }],
++    ['HTML vacío', { ...validInput, html: '  ' }],
++    ['HTML que no es texto', { ...validInput, html: 123 }],
++  ])('rechaza %s', async (_label, input) => {
++    const repo = new InMemoryRepository();
++    await expect(new SaveTemplateUseCase(repo).execute(input)).rejects.toBeInstanceOf(
++      TemplateValidationError,
++    );
++    expect(repo.saved).toHaveLength(0);
++  });
++});
+diff --git a/src/modules/email-builder/use-cases/SaveTemplateUseCase.ts b/src/modules/email-builder/use-cases/SaveTemplateUseCase.ts
+new file mode 100644
+index 0000000..44a9458
+--- /dev/null
++++ b/src/modules/email-builder/use-cases/SaveTemplateUseCase.ts
+@@ -0,0 +1,51 @@
++import type { ITemplateRepository } from '../domain/ports/ITemplateRepository';
++import type { TemplateDesign, TemplateSummary } from '../domain/entities/Template';
++import { TemplateValidationError } from '../domain/errors';
++
++const MAX_NAME_LENGTH = 200;
++/** Tope de caracteres para HTML y JSON (Netlify limita el cuerpo a ~6 MB). */
++const MAX_CONTENT_LENGTH = 4_000_000;
++
++export interface SaveTemplateInput {
++  name: unknown;
++  design: unknown;
++  html: unknown;
++}
++
++const isPlainObject = (value: unknown): value is Record<string, unknown> =>
++  typeof value === 'object' && value !== null && !Array.isArray(value);
++
++/** Un diseño exportado por Unlayer siempre trae un objeto `body`. */
++const isDesign = (value: unknown): value is TemplateDesign =>
++  isPlainObject(value) && isPlainObject(value.body);
++
++export class SaveTemplateUseCase {
++  constructor(private readonly repository: ITemplateRepository) {}
++
++  async execute(input: SaveTemplateInput): Promise<TemplateSummary> {
++    const name = typeof input.name === 'string' ? input.name.trim() : '';
++    if (!name) {
++      throw new TemplateValidationError('El nombre de la plantilla es obligatorio');
++    }
++    if (name.length > MAX_NAME_LENGTH) {
++      throw new TemplateValidationError(`El nombre no puede superar ${MAX_NAME_LENGTH} caracteres`);
++    }
++
++    if (!isDesign(input.design)) {
++      throw new TemplateValidationError('El JSON no tiene el formato de un diseño del editor');
++    }
++
++    if (typeof input.html !== 'string' || !input.html.trim()) {
++      throw new TemplateValidationError('El HTML de la plantilla está vacío');
++    }
++
++    if (
++      input.html.length > MAX_CONTENT_LENGTH ||
++      JSON.stringify(input.design).length > MAX_CONTENT_LENGTH
++    ) {
++      throw new TemplateValidationError('La plantilla es demasiado grande para guardarla');
++    }
++
++    return this.repository.save({ name, design: input.design, html: input.html });
++  }
++}
+diff --git a/src/pages/api/templates/[id].ts b/src/pages/api/templates/[id].ts
+new file mode 100644
+index 0000000..c1ee0e4
+--- /dev/null
++++ b/src/pages/api/templates/[id].ts
+@@ -0,0 +1,16 @@
++import type { APIRoute } from 'astro';
++import { createTemplateUseCases } from '../../../modules/email-builder/composition';
++import { templateErrorResponse } from '../../../modules/email-builder/http';
++import { json } from '../../../shared/http/response';
++
++export const prerender = false;
++
++/** GET /api/templates/:id → plantilla completa (diseño JSON + HTML). */
++export const GET: APIRoute = async ({ params }) => {
++  try {
++    const template = await createTemplateUseCases().get.execute(params.id);
++    return json(template);
++  } catch (error) {
++    return templateErrorResponse(error);
++  }
++};
+diff --git a/src/pages/api/templates/index.ts b/src/pages/api/templates/index.ts
+new file mode 100644
+index 0000000..5b7a2a5
+--- /dev/null
++++ b/src/pages/api/templates/index.ts
+@@ -0,0 +1,34 @@
++import type { APIRoute } from 'astro';
++import { createTemplateUseCases } from '../../../modules/email-builder/composition';
++import { templateErrorResponse } from '../../../modules/email-builder/http';
++import { TemplateValidationError } from '../../../modules/email-builder/domain/errors';
++import { json, readJson } from '../../../shared/http/response';
++
++export const prerender = false;
++
++/** GET /api/templates?name=Bienvenida → versiones guardadas (sin contenido). */
++export const GET: APIRoute = async ({ url }) => {
++  try {
++    const templates = await createTemplateUseCases().list.execute(url.searchParams.get('name'));
++    return json({ templates });
++  } catch (error) {
++    return templateErrorResponse(error);
++  }
++};
++
++/** POST /api/templates { name, design, html } → crea una versión nueva. */
++export const POST: APIRoute = async ({ request }) => {
++  try {
++    const body = await readJson(request);
++    if (!body) throw new TemplateValidationError('El cuerpo de la petición debe ser un JSON válido');
++
++    const saved = await createTemplateUseCases().save.execute({
++      name: body.name,
++      design: body.design,
++      html: body.html,
++    });
++    return json(saved, 201);
++  } catch (error) {
++    return templateErrorResponse(error);
++  }
++};
+diff --git a/src/pages/email-creator.astro b/src/pages/email-creator.astro
+index 9b3914a..cb6d636 100644
+--- a/src/pages/email-creator.astro
++++ b/src/pages/email-creator.astro
+@@ -1,68 +1,8 @@
+ ---
+-import App from "../components/email-editor/Email-editor";
+-import Navbar from "../components/email-editor/Navbar.astro";
+ import Layout from "../layout/Layout.astro";
+-
+-interface Props {
+-	title: string;
+-}
+-
+-const { title } = Astro.props;
++import EmailBuilder from "../modules/email-builder/ui/EmailBuilder";
+ ---
+ 
+-<!doctype html>
+-<html class="dark" lang="en">
+-	<head>
+-		<meta charset="UTF-8" />
+-		<meta name="description" content="Astro description" />
+-		<meta name="viewport" content="width=device-width" />
+-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+-		<meta name="generator" content={Astro.generator} />
+-		<title>{title}</title>
+-		<script is:inline src="//editor.unlayer.com/embed.js"></script>
+-	</head>
+-	<style>
+-		::-webkit-scrollbar {
+-			width: 0.6rem;
+-			border-radius: 0.5rem;
+-		}
+-
+-		::-webkit-scrollbar-thumb {
+-			border: 0.5rem;
+-		}
+-		main{
+-			position: relative;
+-		}
+-	</style>
+-	<Layout title="Email creator" >
+-		<Navbar />
+-		<body  >
+-			<main class="relative">
+-				<div class="editor-container"  >
+-					<App client:only="solid"></App>
+-				  </div>
+-				<!-- <div id="editor-container">
+-					
+-				</div> -->
+-				
+-				
+-			</main>
+-			<slot />
+-		</body>
+-	</Layout>
+-</html>
+-
+-<style>
+-
+-	#editor-container{
+-		width: 100%;
+-		height: 92vh;
+-		overflow: hidden;
+-	}
+-	.editor-container{
+-		width: 100%;
+-		height: 92vh;
+-		overflow: hidden;
+-	}
+-</style>
+-
++<Layout title="Email creator">
++  <EmailBuilder client:only="react" />
++</Layout>
+diff --git a/src/shared/http/response.ts b/src/shared/http/response.ts
+new file mode 100644
+index 0000000..4d9ecd8
+--- /dev/null
++++ b/src/shared/http/response.ts
+@@ -0,0 +1,15 @@
++export const json = (data: unknown, status = 200): Response =>
++  new Response(JSON.stringify(data), {
++    status,
++    headers: { 'Content-Type': 'application/json' },
++  });
++
++/** Lee el cuerpo JSON de una petición; devuelve null si no es JSON válido. */
++export const readJson = async (request: Request): Promise<Record<string, unknown> | null> => {
++  try {
++    const body = await request.json();
++    return typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null;
++  } catch {
++    return null;
++  }
++};

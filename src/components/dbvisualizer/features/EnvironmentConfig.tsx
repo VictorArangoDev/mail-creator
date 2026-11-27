@@ -29,7 +29,6 @@ export function EnvironmentConfig() {
   const canSave = hydrated && sourceId !== targetId && !!sourceEnv && !!targetEnv;
 
   const handleSave = () => {
-    console.log('🔍 Guardando selección:', { sourceId, targetId });
     setSelection({ sourceId, targetId });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

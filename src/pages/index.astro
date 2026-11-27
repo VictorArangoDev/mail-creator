@@ -1,112 +1,126 @@
 ---
-import Layout from "../layout/Layout.astro"
-import Header from '../components/Header.astro'
-import Loader from '../components/Loader.astro'
+import Layout from "../layout/Layout.astro";
+import Container from "../components/container.astro";
+import Header from "../components/Header.astro";
+import Loader from "../components/Loader.astro";
+import Cards from "../components/cards.astro";
 
+type Tool = {
+	id: string;
+	icon: string;
+	label: string;
+	status: string;
+	text: string;
+	platform: string;
+	functionDescription: string[];
+	labelButton: string;
+	href: string;
+	theme: "blue" | "indigo" | "amber" | "slate";
+	enabled: boolean;
+	type?: "roadmap";
+};
+
+const tools: Tool[] = [
+	{
+		id: "email-creator",
+		icon: "code_xml",
+		label: "Email Creator",
+		status: "Estable · v2.1",
+		text: "Diseñador visual y generador de plantillas HTML responsivas para correos con soporte de comodines dinámicos.",
+		platform: "Unlayer",
+		functionDescription: ["Outlook & Gmail Safe", "Exportación HTML pura"],
+		labelButton: "Abrir Editor",
+		href: "/email-creator",
+		theme: "blue",
+		enabled: true,
+	},
+	{
+		id: "email-test",
+		icon: "outgoing_mail",
+		label: "Email Test",
+		status: "Gateway Activo",
+		text: "Despacho inmediato de correos de prueba, validación de variables en tiempo real y previsualización de payload JSON.",
+		platform: "Sandbox",
+		functionDescription: ["API Mocking OK", "Variables por Lotes"],
+		labelButton: "Lanzar Prueba",
+		href: "/email-test",
+		theme: "indigo",
+		enabled: true,
+	},
+	{
+		id: "db-promote",
+		icon: "host",
+		label: "DB Promote",
+		status: "DevOps & DBA",
+		text: "Comparación y sincronización de configuraciones y registros entre ambientes TEST_STAGING y PROD_PRIMARY.",
+		platform: "Sync Tool",
+		functionDescription: ["Diff visual SQL", "Auditoría Segura"],
+		labelButton: "Acceder a DB Promote",
+		href: "/db-compare",
+		theme: "amber",
+		enabled: true,
+	},
+	{
+		id: "roadmap",
+		icon: "html",
+		label: "Próximas Herramientas",
+		status: "En Incubación",
+		text: "Propone mas herramientas que nos permitan agilizar nuestro flujo de trabajo",
+		platform: "",
+		functionDescription: [
+			
+		],
+		labelButton: "+ Proponer una utilidad",
+		href: "#propose-tool",
+		theme: "slate",
+		enabled: true,
+		type: "roadmap",
+	},
+];
 ---
+
 <style>
 	.preloader {
-		   width: 100%;
-		   height: 100%;
-		   position: fixed;
-		   display: flex;
-		   justify-content: center;
-		   align-items: center;
-		   z-index: 2222;
-		   top: 0;
-		   bottom: 0;
-		   background-color: #FAF2E3 !important;
-	   }
- </style>
+		width: 100%;
+		height: 100%;
+		position: fixed;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 2222;
+		top: 0;
+		bottom: 0;
+		background-color: #faf2e3 !important;
+	}
+</style>
 
 <div class="preloader">
-	<Loader/>   
-	</div>
-<Layout title="Tools" >
-	
-	<Header></Header>
-	
+	<Loader />
+</div>
+<Layout title="Tools">
+	<Header />
 
-	<section class="container p-6 mx-auto space-y-3 dark:text-white">
-
-		<h4 class="text-xl font-bold text-gray-700 capitalize  md:text-3xl text-center">⚒️ Cadena tools 🛠️</h4>
-		<p class="text-center text-gray-400">Acelera tu día a día: Herramientas para optimizar tu tiempo.</p>
-	
-		<div class="flex items-center justify-center">
-			<div class="grid gap-8 my-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				<!-- cards -->
-				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
-	
-					<a href="/email-creator">
-						<div
-							class="object-cover object-center w-full h-48 mx-auto rounded-lg ">
-							<div class="py-16 px-4">
-								<h5 class="text-lg font-bold text-black">Email creator</h5>
-								<span class="mt-1 font-medium dark:text-gray-400">Generador de HTML</span>
-							</div>
-						</div>
-					</a>
-				</div>
-				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
-	
-					<a href="/email-test">
-						<div
-							class="object-cover object-center w-full h-48 mx-auto rounded-lg ">
-							<div class="py-16 px-4">
-								<h5 class="text-lg font-bold text-black">Email Test</h5>
-								<span class="mt-1 font-medium dark:text-gray-400">Envios Mail de pruebas</span>
-							</div>
-						</div>
-					</a>
-				</div>
-	
-			
-	
-	
-				<div class="w-full max-w-xs text-center shadow-[rgba(17,17,26,0.1)_0px_0px_16px]">
-					<a href="/db-compare">
-						<div
-							class="object-cover object-center w-full h-48 mx-auto rounded-xl">
-							<div class="py-16 px-4">
-								<h5 class="text-lg font-bold  text-black">Proximamente</h5>
-								<span class="mt-1 font-medium dark:text-gray-400">Mas Herramientas</span>
-							</div>
-						</div>
-					</a>
-				</div>
-	
-	
+	<Container>
+		<section aria-labelledby="tools-grid-heading" data-purpose="tools-collection">
+			<h2 class="sr-only" id="tools-grid-heading">
+				Módulos de Herramientas
+			</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{tools
+					// .filter((tool) => tool.type !== "roadmap")
+					.map((tool) => (
+						<Cards {...tool} />
+					))}
 			</div>
-		</div>
-	</section>
-	<a class="flex absolute bottom-0" href="https://github.com/victor-arango/mail-creator" target="_blank">
-
-		<div class="flex h-10 w-10 items-center justify-center space-x-2 rounded-md border border-muted bg-muted">
-			<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="h-5 w-5">
-				<path
-					d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z">
-				</path>
-			</svg>
-		</div>
-	
-		<div class="flex items-center">
-			<div class="h-full w-4 border-y-8 border-l-0 border-r-8 border-solid border-gray-100 border-y-transparent"></div>
-			<div class="flex h-10 items-center rounded-md bg-gray-100 px-4 font-medium">
-				Quieres contribuir a este proyecto ?
-			</div>
-		</div>
-		
-	</a>
-	
+		</section>
+	</Container>
 </Layout>
-<script is:inline>
-		
-	window.onload = function(){
-		  setTimeout(function() {
-			document.querySelector(".preloader").style.display = "none";
-		  }, 
-		  2000
-		  ); 
-		}
-	  </script>
 
+
+<script is:inline>
+	window.onload = function () {
+		setTimeout(function () {
+			document.querySelector(".preloader").style.display = "none";
+		}, 2000);
+	};
+</script>

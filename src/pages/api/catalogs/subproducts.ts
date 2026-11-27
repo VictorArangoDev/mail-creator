@@ -25,7 +25,6 @@ export const GET: APIRoute = async ({ url }) => {
         ORDER BY Name
       `);
 
-    console.log(result);
     // Normalizamos el casing por si SQL Server devuelve minúsculas
     const subProducts = result.recordset.map((r: any) => ({
       subProductId: Number(r.SubProductId),
