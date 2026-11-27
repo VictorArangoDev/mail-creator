@@ -75,20 +75,14 @@ export class GenerateSqlUseCase {
 
     // 3. Construir la instancia resuelta (AHORA usando formatServerLabel)
     const instance: ResolvedInstance = {
-      targetName: formatServerLabel(targetEnv),      // ← CAMBIO
-      sourceName: formatServerLabel(sourceEnv),      // ← CAMBIO
+      targetName: formatServerLabel(targetEnv),      
+      sourceName: formatServerLabel(sourceEnv),      
       sourcePrefix,
       targetDb: targetEnv.database,
       description: targetEnv.description,
       hasLinkedServer: !!linkedServerAlias,
     };
-    console.log('🔍 [GenerateSql] instance:', {
-      sourceEnv,
-      targetEnv,
-      linkedServerAlias,
-      sourcePrefix,
-      instance,
-    });
+    
 
 
     // 4. Validar que si hay COMPOSITE_KEY, exista linked server

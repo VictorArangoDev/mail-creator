@@ -1,0 +1,163 @@
+
+---
+interface Props {
+    id: string;
+    icon: string;
+    label: string;
+    status: string;
+    text: string;
+    platform: string;
+    functionDescription: string[];
+    labelButton: string;
+    href: string;
+    theme?: "blue" | "indigo" | "amber" | "slate";
+    enabled?: boolean;
+}
+
+const {
+    id,
+    icon,
+    label,
+    status,
+    text,
+    platform,
+    functionDescription = [],
+    labelButton,
+    href,
+    theme = "blue",
+    enabled = true
+} = Astro.props;
+
+// Configuración de colores
+const themes = {
+    blue: {
+        icon: "bg-blue-50 border-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
+        title: "group-hover:text-blue-600",
+        button: "text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/10",
+        badge: "bg-emerald-50 text-emerald-700 border-emerald-200"
+    },
+    indigo: {
+        icon: "bg-indigo-50 border-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white",
+        title: "group-hover:text-indigo-600",
+        button: "text-slate-700 bg-slate-100 hover:bg-indigo-600 hover:text-white",
+        badge: "bg-blue-50 text-blue-700 border-blue-200"
+    },
+    amber: {
+        icon: "bg-amber-50 border-amber-100 text-amber-600 group-hover:bg-amber-600 group-hover:text-white",
+        title: "group-hover:text-amber-600",
+        button: "text-slate-700 bg-slate-100 hover:bg-amber-600 hover:text-white",
+        badge: "bg-amber-50 text-amber-700 border-amber-200"
+    },
+    slate: {
+        icon: "bg-slate-200/60 border-slate-300 text-slate-600",
+        title: "text-slate-800",
+        button: "text-slate-700 bg-white border border-slate-300 hover:border-slate-400 hover:bg-slate-50",
+        badge: "bg-slate-200/80 text-slate-700 border-slate-300"
+    }
+};
+
+const currentTheme = themes[theme];
+---
+
+{enabled && (
+    <article
+        id={id}
+        class:list={[
+            "group relative flex flex-col justify-between bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200",
+        ]}
+    >
+        <div>
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-4">
+
+                <!-- Icon -->
+                <div class:list={[
+                    "w-12 h-12 rounded-xl border flex items-center justify-center transition-colors duration-200",
+                    currentTheme.icon
+                ]}>
+                    <span class={`material-symbols-outlined w-6 h-6`} aria-hidden="true">{icon}</span>
+                </div>
+
+                <!-- Status -->
+                <span class:list={[
+                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
+                    currentTheme.badge
+                ]}>
+                    {status}
+                </span>
+            </div>
+
+            <!-- Title -->
+            <h3 class:list={[
+                "text-lg font-bold text-slate-900 transition-colors flex items-center gap-1.5",
+                currentTheme.title
+            ]}>
+                {label}
+
+                {platform && (
+                    <span class="text-xs font-normal text-slate-400 font-mono">
+                        ({platform})
+                    </span>
+                )}
+            </h3>
+
+            <!-- Description -->
+            <p class="mt-2 text-sm text-slate-600 leading-relaxed">
+                {text}
+            </p>
+
+            <!-- Features -->
+            {functionDescription.length > 0 && (
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-2 text-[11px] text-slate-500 font-medium">
+
+                    {functionDescription.map((feature, index) => (
+                        <span class="inline-flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-200/60">
+                            {index === 0 && (
+                                <svg
+                                    class="w-3.5 h-3.5 text-slate-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                >
+                                    <path
+                                        clip-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        fill-rule="evenodd"
+                                    />
+                                </svg>
+                            )}
+                            {feature}
+                        </span>
+                    ))}
+
+                </div>
+            )}
+        </div>
+
+        <!-- Action -->
+        <div class="mt-6 pt-2">
+            <a
+                class:list={[
+                    "inline-flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors",
+                    currentTheme.button
+                ]}
+                href={href}
+            >
+                <span>{labelButton}</span>
+
+                <svg
+                    class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </a>
+        </div>
+    </article>
+)}

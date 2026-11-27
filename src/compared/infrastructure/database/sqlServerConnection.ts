@@ -40,14 +40,6 @@ function getConfig(env: ConnectionEnv): sql.config {
   const user = readEnv(`${prefix}_USER`);
   const password = readEnv(`${prefix}_PASSWORD`);
 
-  // 🔍 Diagnóstico (útil en dev, quitar en prod si molesta)
-  console.log(`🔍 getConfig(${env}):`, {
-    prefix,
-    server: server ?? '(undefined)',
-    database: database ?? '(undefined)',
-    user: user ?? '(undefined)',
-    password: password ? '***' : '(undefined)',
-  });
 
   if (!server || !database || !user || !password) {
     const missing: string[] = [];
@@ -90,7 +82,6 @@ export const getConnectionPool = async (env: ConnectionEnv): Promise<sql.Connect
     const poolConnect = pool.connect();
     pools.set(env, pool);
     await poolConnect;
-    console.log(`✅ Conectado a ${env} (${config.server})`);
     return pool;
   } catch (error: any) {
     console.error(`❌ Error conectando a ${env}:`, error.message);
